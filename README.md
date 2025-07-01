@@ -8,7 +8,7 @@ This project is a Hospital Management System designed to manage hospital operati
 
 ## Overview
 
-The system provides essential features for hospital workflows, such as managing patients, doctors, appointments, and billing.
+The system provides essential features for hospital workflows, such as managing patients, doctors, appointments.
 
 ---
 
