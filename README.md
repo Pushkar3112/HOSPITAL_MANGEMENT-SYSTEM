@@ -311,72 +311,6 @@ POST /api/appointments/verify-payment - Verify payment
 POST /api/symptom-checker        - Analyze symptoms
 ```
 
-## 🎯 Appointment Booking Flow
-
-1. Patient searches for doctors
-2. Patient selects date and views available slots
-3. Backend calculates slots based on:
-   - Doctor's available days
-   - Working hours (9 AM - 5 PM)
-   - Slot duration (30 mins)
-   - Custom breaks
-   - Already booked appointments
-4. Patient selects slot and confirms booking
-5. Backend creates PENDING appointment
-6. Razorpay payment order generated
-7. Patient completes payment
-8. Payment verified via webhook
-9. Appointment status changed to CONFIRMED
-
-## 🤖 AI Symptom Checker
-
-Uses Google Gemini API to:
-
-- Analyze patient-described symptoms
-- Suggest possible general conditions
-- Recommend appropriate doctor specialization
-- Assess urgency level (ROUTINE, SOON, URGENT)
-- Provide medical disclaimer
-
-```
-Example Input:
-"I have a severe headache, fever, and body aches"
-
-Example Output:
-{
-  "summary": "Symptoms suggest possible viral infection",
-  "possibleCauses": ["Common Cold", "Flu", "Migraine"],
-  "recommendedSpecialization": "General Practitioner",
-  "urgencyLevel": "SOON",
-  "disclaimer": "This is NOT a medical diagnosis..."
-}
-```
-
-## 💳 Payment Integration
-
-**Razorpay Integration** includes:
-
-- Order creation with payment amount
-- Signature verification for security
-- Webhook handling for payment confirmation
-- Automatic appointment confirmation on success
-- Refund handling for cancellations
-
-## 🛠️ Development
-
-### Running Tests
-
-```bash
-# Backend
-cd backend
-npm test
-
-# Frontend
-cd frontend
-npm test
-```
-
-### Building for Production
 
 ```bash
 # Backend: Already optimized for production
@@ -438,89 +372,9 @@ Solution: Use Redux DevTools extension to debug state
 Solution: Restart dev server to rebuild Tailwind CSS
 ```
 
-## 📚 Documentation
 
-- [Backend README](./backend/README.md) - Detailed backend documentation
-- [Frontend README](./frontend/README.md) - Detailed frontend documentation
-
-## 🚢 Deployment
-
-### Backend (Heroku/Railway)
-
-```bash
-# Add Procfile
-echo "web: node src/index.js" > Procfile
-
-# Deploy
-git push heroku main
-```
-
-### Frontend (Vercel/Netlify)
-
-```bash
-# Vercel
-npm install -g vercel
-vercel
-
-# Netlify
-npm run build
-# Deploy build folder to Netlify
-```
-
-## 📝 Coding Standards
-
-- **Backend**: Express conventions, RESTful API design
-- **Frontend**: React hooks, functional components
-- **Naming**: camelCase for JS, PascalCase for components
-- **Comments**: JSDoc for functions, inline for complex logic
-- **Error Handling**: Try-catch with proper error messages
-
-## 🤝 Contributing
-
-1. Create feature branch (`git checkout -b feature/feature-name`)
-2. Commit changes (`git commit -am 'Add feature'`)
-3. Push to branch (`git push origin feature/feature-name`)
-4. Submit pull request
-
-## 📄 License
-
-MIT License - See LICENSE file for details
-
-## 📞 Support
-
-For issues and questions:
-
-- Check [Backend README](./backend/README.md)
-- Check [Frontend README](./frontend/README.md)
-- Review API documentation
-- Check demo credentials work
-
-## 🎓 Learning Resources
-
-- [Express.js Documentation](https://expressjs.com/)
-- [React Documentation](https://react.dev/)
-- [MongoDB Documentation](https://docs.mongodb.com/)
-- [Redux Toolkit Guide](https://redux-toolkit.js.org/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-
-## ✅ Checklist for Production
-
-- [ ] Update all API URLs to production
-- [ ] Change JWT secrets to strong values
-- [ ] Update Razorpay keys to production
-- [ ] Configure CORS properly
-- [ ] Set up MongoDB Atlas cluster
-- [ ] Enable HTTPS
-- [ ] Add rate limiting
-- [ ] Set up monitoring and logging
-- [ ] Add email notifications
-- [ ] Backup strategy for database
-- [ ] Security audit
-- [ ] Performance optimization
-- [ ] Load testing
-
----
 
 **Built with ❤️ for Hospital Management Systems**
 
 Happy coding! 🚀
+
