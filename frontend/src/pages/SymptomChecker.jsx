@@ -45,6 +45,8 @@ const SymptomChecker = () => {
     { path: "/patient/profile", label: "My Profile" },
     { path: "/patient/symptom-checker", label: "Symptom Checker" },
     { path: "/patient/medical-history", label: "Medical History" },
+    { path: "/patient/prescriptions", label: "Prescriptions" },
+    { path: "/patient/invoices", label: "Invoices" },
   ];
 
   return (
@@ -167,8 +169,8 @@ const SymptomChecker = () => {
                             analysis.urgencyLevel === "URGENT"
                               ? "#d62828"
                               : analysis.urgencyLevel === "MODERATE"
-                              ? "#f4a460"
-                              : "#06a77d",
+                                ? "#f4a460"
+                                : "#06a77d",
                         }}
                       >
                         {analysis.urgencyLevel}

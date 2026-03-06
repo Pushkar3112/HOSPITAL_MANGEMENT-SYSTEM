@@ -80,7 +80,7 @@ const AppointmentBooking = () => {
     const date = e.target.value;
     setSelectedDate(date);
     if (selectedDoctor && date) {
-      loadSlots(selectedDoctor._id, date);
+      loadSlots(selectedDoctor.id || selectedDoctor._id, date);
     }
   };
 
@@ -98,7 +98,7 @@ const AppointmentBooking = () => {
     setLoading(true);
     try {
       const response = await appointmentService.createAppointment({
-        doctorId: selectedDoctor._id,
+        doctorId: selectedDoctor.id || selectedDoctor._id,
         date: selectedDate,
         startTime: selectedSlot.startTime,
         endTime: selectedSlot.endTime,
@@ -109,7 +109,7 @@ const AppointmentBooking = () => {
       const { appointment, order } = response.data.data;
       setPaymentDetails({
         ...order,
-        appointmentId: appointment._id,
+        appointmentId: appointment.id || appointment._id,
       });
       setStep(3); // Go to payment step
       setBookingError("");
@@ -223,6 +223,8 @@ const AppointmentBooking = () => {
     { path: "/patient/profile", label: "My Profile" },
     { path: "/patient/symptom-checker", label: "Symptom Checker" },
     { path: "/patient/medical-history", label: "Medical History" },
+    { path: "/patient/prescriptions", label: "Prescriptions" },
+    { path: "/patient/invoices", label: "Invoices" },
   ];
 
   return (
@@ -409,18 +411,18 @@ const AppointmentBooking = () => {
                     <div style={{ display: "grid", gap: "10px" }}>
                       {doctors.map((doctor) => (
                         <div
-                          key={doctor._id}
+                          key={doctor.id || doctor._id}
                           onClick={() => handleDoctorSelect(doctor)}
                           style={{
                             padding: "15px",
                             border:
-                              selectedDoctor?._id === doctor._id
+                              selectedDoctor?.id === (doctor.id || doctor._id)
                                 ? "2px solid #0066cc"
                                 : "1px solid #ddd",
                             borderRadius: "8px",
                             cursor: "pointer",
                             backgroundColor:
-                              selectedDoctor?._id === doctor._id
+                              selectedDoctor?.id === (doctor.id || doctor._id)
                                 ? "#f0f7ff"
                                 : "#f9f9f9",
                             transition: "all 0.3s",
@@ -503,9 +505,8 @@ const AppointmentBooking = () => {
             {step === 2 && selectedDoctor && (
               <>
                 <Card
-                  title={`Step 2: Book with Dr. ${
-                    selectedDoctor.user?.name || "Doctor"
-                  }`}
+                  title={`Step 2: Book with Dr. ${selectedDoctor.user?.name || "Doctor"
+                    }`}
                 >
                   <div
                     style={{

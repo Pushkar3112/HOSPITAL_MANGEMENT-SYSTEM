@@ -83,6 +83,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/patient/prescriptions"
+            element={
+              <ProtectedRoute requiredRole="PATIENT">
+                <Prescriptions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/patient/invoices"
+            element={
+              <ProtectedRoute requiredRole="PATIENT">
+                <Invoices />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Doctor Routes */}
           <Route

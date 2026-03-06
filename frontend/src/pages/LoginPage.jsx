@@ -30,8 +30,8 @@ export const LoginPage = () => {
 
   // Demo credentials
   const demoAccounts = [
-    { email: "john@example.com", password: "patient123", role: "Patient" },
-    { email: "rajesh@hms.com", password: "doctor123", role: "Doctor" },
+    { email: "rahul@hms.com", password: "patient123", role: "Patient" },
+    { email: "dr.sharma@hms.com", password: "doctor123", role: "Doctor" },
     { email: "admin@hms.com", password: "admin123", role: "Admin" },
   ];
 
