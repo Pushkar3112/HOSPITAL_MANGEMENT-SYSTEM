@@ -1,8 +1,4 @@
-const DoctorProfile = require("../models/DoctorProfile");
-const User = require("../models/User");
-const Appointment = require("../models/Appointment");
-const Prescription = require("../models/Prescription");
-const MedicalRecord = require("../models/MedicalRecord");
+const { prisma } = require("../config/database");
 const { sendResponse } = require("../utils/apiResponse");
 const ApiError = require("../utils/apiError");
 const { generateAvailableSlots } = require("../utils/appointmentUtils");
@@ -12,18 +8,18 @@ const { generateAvailableSlots } = require("../utils/appointmentUtils");
  */
 const getProfile = async (req, res, next) => {
   try {
-    const doctorProfile = await DoctorProfile.findOne({
-      userId: req.user.userId,
+    const doctorProfile = await prisma.doctorProfile.findUnique({
+      where: { userId: req.user.userId },
     });
     if (!doctorProfile) {
       throw new ApiError(404, "Doctor profile not found");
     }
 
-    const user = await User.findById(req.user.userId);
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
 
     return sendResponse(res, 200, {
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
@@ -54,24 +50,22 @@ const updateProfile = async (req, res, next) => {
       maxPatientsPerSlot,
     } = req.body;
 
-    const doctorProfile = await DoctorProfile.findOneAndUpdate(
-      { userId: req.user.userId },
-      {
+    const doctorProfile = await prisma.doctorProfile.update({
+      where: { userId: req.user.userId },
+      data: {
         specialization,
-        qualifications,
+        qualifications: qualifications || [],
         yearsOfExperience,
         hospitalName,
         consultationFee,
-        availableDays,
+        availableDays: availableDays || [],
         dailyStartTime,
         dailyEndTime,
         slotDurationMinutes,
-        customBreaks,
+        customBreaks: customBreaks || [],
         maxPatientsPerSlot,
-        updatedAt: Date.now(),
       },
-      { new: true }
-    );
+    });
 
     return sendResponse(
       res,
@@ -97,12 +91,19 @@ const getAppointments = async (req, res, next) => {
       const startDate = new Date(date);
       const endDate = new Date(date);
       endDate.setDate(endDate.getDate() + 1);
-      filter.date = { $gte: startDate, $lt: endDate };
+      filter.date = { gte: startDate, lt: endDate };
     }
 
-    const appointments = await Appointment.find(filter)
-      .populate("patientId", "name email phone")
-      .sort({ date: 1, startTime: 1 });
+    const appointments = await prisma.appointment.findMany({
+      where: filter,
+      include: {
+        patient: { select: { id: true, name: true, email: true, phone: true } },
+      },
+      orderBy: [
+        { date: 'asc' },
+        { startTime: 'asc' }
+      ],
+    });
 
     return sendResponse(res, 200, appointments);
   } catch (error) {
@@ -117,12 +118,12 @@ const confirmAppointment = async (req, res, next) => {
   try {
     const { appointmentId } = req.params;
 
-    const appointment = await Appointment.findById(appointmentId);
+    const appointment = await prisma.appointment.findUnique({ where: { id: appointmentId } });
     if (!appointment) {
       throw new ApiError(404, "Appointment not found");
     }
 
-    if (appointment.doctorId.toString() !== req.user.userId) {
+    if (appointment.doctorId !== req.user.userId) {
       throw new ApiError(403, "Unauthorized");
     }
 
@@ -130,10 +131,12 @@ const confirmAppointment = async (req, res, next) => {
       throw new ApiError(400, "Appointment is not in PENDING status");
     }
 
-    appointment.status = "CONFIRMED";
-    await appointment.save();
+    const updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status: "CONFIRMED" }
+    });
 
-    return sendResponse(res, 200, appointment, "Appointment confirmed");
+    return sendResponse(res, 200, updated, "Appointment confirmed");
   } catch (error) {
     next(error);
   }
@@ -146,22 +149,24 @@ const completeAppointment = async (req, res, next) => {
   try {
     const { appointmentId } = req.params;
 
-    const appointment = await Appointment.findById(appointmentId);
+    const appointment = await prisma.appointment.findUnique({ where: { id: appointmentId } });
     if (!appointment) {
       throw new ApiError(404, "Appointment not found");
     }
 
-    if (appointment.doctorId.toString() !== req.user.userId) {
+    if (appointment.doctorId !== req.user.userId) {
       throw new ApiError(403, "Unauthorized");
     }
 
-    appointment.status = "COMPLETED";
-    await appointment.save();
+    const updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status: "COMPLETED" }
+    });
 
     return sendResponse(
       res,
       200,
-      appointment,
+      updated,
       "Appointment marked as complete"
     );
   } catch (error) {
@@ -179,12 +184,12 @@ const getAvailableSlots = async (req, res, next) => {
       throw new ApiError(400, "Date is required");
     }
 
-    const doctor = await DoctorProfile.findOne({ userId: req.user.userId });
+    const doctor = await prisma.doctorProfile.findUnique({ where: { userId: req.user.userId } });
     if (!doctor) {
       throw new ApiError(404, "Doctor profile not found");
     }
 
-    const appointments = await Appointment.find({ doctorId: req.user.userId });
+    const appointments = await prisma.appointment.findMany({ where: { doctorId: req.user.userId } });
     const slots = generateAvailableSlots(doctor, date, appointments);
 
     return sendResponse(res, 200, { slots });
@@ -206,19 +211,22 @@ const createPrescription = async (req, res, next) => {
       followUpDate,
     } = req.body;
 
-    const prescription = await Prescription.create({
-      patientId,
-      doctorId: req.user.userId,
-      appointmentId,
-      medications,
-      lifestyleAdvice,
-      followUpDate,
+    const prescription = await prisma.prescription.create({
+      data: {
+        patientId,
+        doctorId: req.user.userId,
+        appointmentId,
+        medications: medications || [],
+        lifestyleAdvice,
+        followUpDate: followUpDate ? new Date(followUpDate) : undefined,
+      }
     });
 
     // Link to appointment
     if (appointmentId) {
-      await Appointment.findByIdAndUpdate(appointmentId, {
-        prescriptionId: prescription._id,
+      await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: { prescriptionId: prescription.id }
       });
     }
 
@@ -238,10 +246,14 @@ const createPrescription = async (req, res, next) => {
  */
 const getPrescriptions = async (req, res, next) => {
   try {
-    const prescriptions = await Prescription.find({ doctorId: req.user.userId })
-      .populate("patientId", "name email")
-      .populate("appointmentId")
-      .sort({ createdAt: -1 });
+    const prescriptions = await prisma.prescription.findMany({
+      where: { doctorId: req.user.userId },
+      include: {
+        patient: { select: { id: true, name: true, email: true } },
+        appointment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return sendResponse(res, 200, prescriptions);
   } catch (error) {
@@ -264,15 +276,17 @@ const createMedicalRecord = async (req, res, next) => {
       notes,
     } = req.body;
 
-    const record = await MedicalRecord.create({
-      patientId,
-      doctorId: req.user.userId,
-      appointmentId,
-      diagnoses,
-      testsOrdered,
-      testResults,
-      attachments,
-      notes,
+    const record = await prisma.medicalRecord.create({
+      data: {
+        patientId,
+        doctorId: req.user.userId,
+        appointmentId,
+        diagnoses: diagnoses || [],
+        testsOrdered: testsOrdered || [],
+        testResults: testResults || [],
+        attachments: attachments || [],
+        notes,
+      }
     });
 
     return sendResponse(

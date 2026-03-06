@@ -22,7 +22,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Connect to database
+// Connect to database and redis
+const { connectRedis } = require('./config/redis');
+connectRedis();
 connectDB();
 
 // Routes

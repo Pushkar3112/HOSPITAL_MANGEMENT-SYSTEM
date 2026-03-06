@@ -1,8 +1,6 @@
-const User = require("../models/User");
-const PatientProfile = require("../models/PatientProfile");
-const DoctorProfile = require("../models/DoctorProfile");
+const { prisma } = require("../config/database");
 const { hashPassword, comparePassword } = require("../utils/passwordUtils");
-const { generateAuthTokens } = require("../utils/tokenUtils");
+const { generateAuthTokens, verifyToken, generateToken } = require("../utils/tokenUtils");
 const ApiError = require("../utils/apiError");
 const { sendResponse } = require("../utils/apiResponse");
 
@@ -14,7 +12,7 @@ const register = async (req, res, next) => {
     const { name, email, phone, password, role } = req.body;
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       throw new ApiError(409, "User with this email already exists");
     }
@@ -22,25 +20,43 @@ const register = async (req, res, next) => {
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      phone,
-      passwordHash,
-      role,
-    });
+    // Create user and profile in a transaction
+    const userRole = role || "PATIENT";
 
-    // Create profile based on role
-    if (role === "PATIENT") {
-      await PatientProfile.create({ userId: user._id });
-    } else if (role === "DOCTOR") {
-      await DoctorProfile.create({ userId: user._id, isVerified: false });
-    }
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          name,
+          email,
+          phone,
+          passwordHash,
+          role: userRole,
+        },
+      });
+
+      if (userRole === "PATIENT") {
+        await tx.patientProfile.create({ data: { userId: newUser.id } });
+      } else if (userRole === "DOCTOR") {
+        // Required fields like specialization, yearsOfExperience, hospitalName, consultationFee need placeholder defaults
+        // during registration if not provided, or frontend should provide them.
+        // Assuming minimal defaults for now.
+        await tx.doctorProfile.create({
+          data: {
+            userId: newUser.id,
+            isVerified: false,
+            specialization: "Not Specified",
+            yearsOfExperience: 0,
+            hospitalName: "Not Specified",
+            consultationFee: 0,
+          }
+        });
+      }
+      return newUser;
+    });
 
     // Generate tokens
     const { accessToken, refreshToken } = generateAuthTokens(
-      user._id,
+      user.id,
       user.role
     );
 
@@ -49,7 +65,7 @@ const register = async (req, res, next) => {
       201,
       {
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
@@ -72,7 +88,7 @@ const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       throw new ApiError(401, "Invalid email or password");
     }
@@ -90,7 +106,7 @@ const login = async (req, res, next) => {
 
     // Generate tokens
     const { accessToken, refreshToken } = generateAuthTokens(
-      user._id,
+      user.id,
       user.role
     );
 
@@ -99,7 +115,7 @@ const login = async (req, res, next) => {
       200,
       {
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
@@ -125,18 +141,16 @@ const refreshAccessToken = async (req, res, next) => {
       throw new ApiError(401, "Refresh token is required");
     }
 
-    const { verifyToken } = require("../utils/tokenUtils");
     const decoded = verifyToken(refreshToken, "refresh");
 
     // Get user
-    const user = await User.findById(decoded.userId);
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user) {
       throw new ApiError(401, "User not found");
     }
 
     // Generate new access token
-    const { generateToken } = require("../utils/tokenUtils");
-    const newAccessToken = generateToken(user._id, user.role, "access");
+    const newAccessToken = generateToken(user.id, user.role, "access");
 
     return sendResponse(
       res,

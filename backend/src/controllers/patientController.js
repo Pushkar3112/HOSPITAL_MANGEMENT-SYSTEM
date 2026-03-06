@@ -1,10 +1,4 @@
-const User = require("../models/User");
-const PatientProfile = require("../models/PatientProfile");
-const Appointment = require("../models/Appointment");
-const MedicalRecord = require("../models/MedicalRecord");
-const Prescription = require("../models/Prescription");
-const Invoice = require("../models/Invoice");
-const DoctorProfile = require("../models/DoctorProfile");
+const { prisma } = require("../config/database");
 const { sendResponse } = require("../utils/apiResponse");
 const ApiError = require("../utils/apiError");
 
@@ -13,18 +7,18 @@ const ApiError = require("../utils/apiError");
  */
 const getProfile = async (req, res, next) => {
   try {
-    const patientProfile = await PatientProfile.findOne({
-      userId: req.user.userId,
+    const patientProfile = await prisma.patientProfile.findUnique({
+      where: { userId: req.user.userId },
     });
     if (!patientProfile) {
       throw new ApiError(404, "Patient profile not found");
     }
 
-    const user = await User.findById(req.user.userId);
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
 
     return sendResponse(res, 200, {
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
@@ -51,20 +45,28 @@ const updateProfile = async (req, res, next) => {
       chronicConditions,
     } = req.body;
 
-    const patientProfile = await PatientProfile.findOneAndUpdate(
-      { userId: req.user.userId },
-      {
+    const patientProfile = await prisma.patientProfile.upsert({
+      where: { userId: req.user.userId },
+      update: {
         gender,
-        dateOfBirth,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         bloodGroup,
         address,
         emergencyContact,
-        allergies,
-        chronicConditions,
-        updatedAt: Date.now(),
+        allergies: allergies || [],
+        chronicConditions: chronicConditions || [],
       },
-      { new: true, upsert: true }
-    );
+      create: {
+        userId: req.user.userId,
+        gender,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        bloodGroup,
+        address,
+        emergencyContact,
+        allergies: allergies || [],
+        chronicConditions: chronicConditions || [],
+      },
+    });
 
     return sendResponse(
       res,
@@ -88,10 +90,14 @@ const getAppointments = async (req, res, next) => {
     if (status) filter.status = status;
     if (doctorId) filter.doctorId = doctorId;
 
-    const appointments = await Appointment.find(filter)
-      .populate("doctorId", "name email")
-      .populate("patientId", "name email")
-      .sort({ date: -1 });
+    const appointments = await prisma.appointment.findMany({
+      where: filter,
+      include: {
+        doctor: { select: { id: true, name: true, email: true } },
+        patient: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { date: 'desc' },
+    });
 
     return sendResponse(res, 200, appointments);
   } catch (error) {
@@ -106,12 +112,12 @@ const cancelAppointment = async (req, res, next) => {
   try {
     const { appointmentId } = req.params;
 
-    const appointment = await Appointment.findById(appointmentId);
+    const appointment = await prisma.appointment.findUnique({ where: { id: appointmentId } });
     if (!appointment) {
       throw new ApiError(404, "Appointment not found");
     }
 
-    if (appointment.patientId.toString() !== req.user.userId) {
+    if (appointment.patientId !== req.user.userId) {
       throw new ApiError(403, "Unauthorized");
     }
 
@@ -135,16 +141,18 @@ const cancelAppointment = async (req, res, next) => {
       );
     }
 
-    appointment.status = "CANCELLED";
-    if (appointment.paymentStatus === "PAID") {
-      appointment.paymentStatus = "REFUNDED";
-    }
-    await appointment.save();
+    const updatedAppointment = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: "CANCELLED",
+        paymentStatus: appointment.paymentStatus === "PAID" ? "REFUNDED" : undefined,
+      },
+    });
 
     return sendResponse(
       res,
       200,
-      appointment,
+      updatedAppointment,
       "Appointment cancelled successfully"
     );
   } catch (error) {
@@ -157,10 +165,14 @@ const cancelAppointment = async (req, res, next) => {
  */
 const getMedicalHistory = async (req, res, next) => {
   try {
-    const records = await MedicalRecord.find({ patientId: req.user.userId })
-      .populate("doctorId", "name email")
-      .populate("appointmentId")
-      .sort({ createdAt: -1 });
+    const records = await prisma.medicalRecord.findMany({
+      where: { patientId: req.user.userId },
+      include: {
+        doctor: { select: { id: true, name: true, email: true } },
+        appointment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return sendResponse(res, 200, records);
   } catch (error) {
@@ -173,12 +185,14 @@ const getMedicalHistory = async (req, res, next) => {
  */
 const getPrescriptions = async (req, res, next) => {
   try {
-    const prescriptions = await Prescription.find({
-      patientId: req.user.userId,
-    })
-      .populate("doctorId", "name email")
-      .populate("appointmentId")
-      .sort({ createdAt: -1 });
+    const prescriptions = await prisma.prescription.findMany({
+      where: { patientId: req.user.userId },
+      include: {
+        doctor: { select: { id: true, name: true, email: true } },
+        appointment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return sendResponse(res, 200, prescriptions);
   } catch (error) {
@@ -197,9 +211,13 @@ const getInvoices = async (req, res, next) => {
     if (doctorId) filter.doctorId = doctorId;
     if (status) filter.paymentStatus = status;
 
-    const invoices = await Invoice.find(filter)
-      .populate("doctorId", "name email")
-      .sort({ createdAt: -1 });
+    const invoices = await prisma.invoice.findMany({
+      where: filter,
+      include: {
+        doctor: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return sendResponse(res, 200, invoices);
   } catch (error) {
