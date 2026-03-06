@@ -37,6 +37,8 @@ const PatientDashboard = () => {
     { path: "/patient/profile", label: "My Profile" },
     { path: "/patient/symptom-checker", label: "Symptom Checker" },
     { path: "/patient/medical-history", label: "Medical History" },
+    { path: "/patient/prescriptions", label: "Prescriptions" },
+    { path: "/patient/invoices", label: "Invoices" },
   ];
 
   return (
@@ -126,7 +128,7 @@ const PatientDashboard = () => {
                   {(activeTab === "upcoming" ? upcoming : completed).map(
                     (apt) => (
                       <div
-                        key={apt._id}
+                        key={apt.id || apt._id}
                         style={{
                           padding: "15px",
                           border: "1px solid #ddd",
@@ -143,7 +145,7 @@ const PatientDashboard = () => {
                         >
                           <div>
                             <h4 style={{ margin: "0 0 8px 0", color: "#333" }}>
-                              {apt.doctorId?.name || "Doctor"}
+                              {apt.doctor?.name || apt.doctorId?.name || "Doctor"}
                             </h4>
                             <p
                               style={{
@@ -167,13 +169,12 @@ const PatientDashboard = () => {
                             </p>
                           </div>
                           <span
-                            className={`badge badge-${
-                              apt.status === "CONFIRMED"
+                            className={`badge badge-${apt.status === "CONFIRMED"
                                 ? "success"
                                 : apt.status === "PENDING"
-                                ? "warning"
-                                : "primary"
-                            }`}
+                                  ? "warning"
+                                  : "primary"
+                              }`}
                           >
                             {apt.status}
                           </span>
@@ -183,10 +184,10 @@ const PatientDashboard = () => {
                   )}
                   {(activeTab === "upcoming" ? upcoming : completed).length ===
                     0 && (
-                    <p style={{ textAlign: "center", color: "#999" }}>
-                      No {activeTab} appointments found
-                    </p>
-                  )}
+                      <p style={{ textAlign: "center", color: "#999" }}>
+                        No {activeTab} appointments found
+                      </p>
+                    )}
                 </div>
               )}
             </Card>

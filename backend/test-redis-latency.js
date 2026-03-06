@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:5000/api/doctor-search';
+const API_URL = 'http://127.0.0.1:5000/api/doctor-search/search';
 
 async function measureLatency(url, numRequests = 10) {
     const latencies = [];

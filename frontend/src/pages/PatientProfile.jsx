@@ -51,6 +51,8 @@ const PatientProfile = () => {
     { path: "/patient/profile", label: "My Profile" },
     { path: "/patient/symptom-checker", label: "Symptom Checker" },
     { path: "/patient/medical-history", label: "Medical History" },
+    { path: "/patient/prescriptions", label: "Prescriptions" },
+    { path: "/patient/invoices", label: "Invoices" },
   ];
 
   if (patient.isLoading) {
@@ -93,7 +95,7 @@ const PatientProfile = () => {
                       Full Name
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.userId?.name || "N/A"}
+                      {formData.user?.name || "N/A"}
                     </p>
                   </div>
                   <div>
@@ -101,7 +103,7 @@ const PatientProfile = () => {
                       Email
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.userId?.email || "N/A"}
+                      {formData.user?.email || "N/A"}
                     </p>
                   </div>
                   <div>
@@ -109,7 +111,7 @@ const PatientProfile = () => {
                       Phone
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.userId?.phone || "N/A"}
+                      {formData.user?.phone || "N/A"}
                     </p>
                   </div>
                   <div>
@@ -117,7 +119,7 @@ const PatientProfile = () => {
                       Gender
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.gender || "N/A"}
+                      {formData.profile?.gender || "N/A"}
                     </p>
                   </div>
                   <div>
@@ -125,8 +127,8 @@ const PatientProfile = () => {
                       Date of Birth
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.dateOfBirth
-                        ? formatDate(new Date(formData.dateOfBirth))
+                      {formData.profile?.dateOfBirth
+                        ? formatDate(new Date(formData.profile.dateOfBirth))
                         : "N/A"}
                     </p>
                   </div>
@@ -135,7 +137,7 @@ const PatientProfile = () => {
                       Blood Group
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.bloodGroup || "N/A"}
+                      {formData.profile?.bloodGroup?.replace('_', ' ') || "N/A"}
                     </p>
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
@@ -143,7 +145,7 @@ const PatientProfile = () => {
                       Address
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.address?.street || "N/A"}
+                      {formData.profile?.address ? `${formData.profile.address.street}, ${formData.profile.address.city}, ${formData.profile.address.state} - ${formData.profile.address.zipCode}` : "N/A"}
                     </p>
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
@@ -151,7 +153,7 @@ const PatientProfile = () => {
                       Allergies
                     </label>
                     <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.allergies?.join(", ") || "None"}
+                      {formData.profile?.allergies?.length > 0 ? formData.profile.allergies.join(", ") : "None"}
                     </p>
                   </div>
                 </div>

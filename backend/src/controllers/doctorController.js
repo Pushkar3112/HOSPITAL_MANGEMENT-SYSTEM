@@ -215,14 +215,13 @@ const createPrescription = async (req, res, next) => {
       data: {
         patientId,
         doctorId: req.user.userId,
-        appointmentId,
         medications: medications || [],
         lifestyleAdvice,
         followUpDate: followUpDate ? new Date(followUpDate) : undefined,
       }
     });
 
-    // Link to appointment
+    // Link prescription to appointment via the Appointment's prescriptionId FK
     if (appointmentId) {
       await prisma.appointment.update({
         where: { id: appointmentId },

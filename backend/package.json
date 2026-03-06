@@ -6,9 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "seed": "node scripts/seed.js",
-    "seed:availability": "node seed-availability.js",
-    "test:slots": "node test-slots.js"
+    "seed": "node seed.js"
   },
   "keywords": [],
   "author": "",

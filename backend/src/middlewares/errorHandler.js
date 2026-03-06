@@ -10,7 +10,12 @@ const errorHandler = (err, req, res, next) => {
 
   console.error("Error:", err);
 
-  return sendResponse(res, statusCode, null, message);
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    errors: err.errors || [],
+    data: null,
+  });
 };
 
 module.exports = errorHandler;

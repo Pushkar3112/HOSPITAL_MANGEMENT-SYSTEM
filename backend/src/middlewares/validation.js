@@ -20,8 +20,8 @@ const validationRules = {
     body("name").trim().notEmpty().withMessage("Name is required"),
     body("email").isEmail().withMessage("Valid email is required"),
     body("phone")
-      .matches(/^[0-9]{10}$/)
-      .withMessage("Valid 10-digit phone number is required"),
+      .matches(/^[0-9]{10,15}$/)
+      .withMessage("Valid 10-15 digit phone number is required"),
     body("password")
       .isLength({ min: 6 })
       .withMessage("Password must be at least 6 characters"),

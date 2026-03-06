@@ -26,6 +26,8 @@ import DoctorAvailability from "./pages/DoctorAvailability";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminAppointments from "./pages/AdminAppointments";
+import Prescriptions from "./pages/Prescriptions";
+import Invoices from "./pages/Invoices";
 
 // CSS
 import "./index.css";

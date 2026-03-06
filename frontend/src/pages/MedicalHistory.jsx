@@ -27,6 +27,8 @@ const MedicalHistory = () => {
     { path: "/patient/profile", label: "My Profile" },
     { path: "/patient/symptom-checker", label: "Symptom Checker" },
     { path: "/patient/medical-history", label: "Medical History" },
+    { path: "/patient/prescriptions", label: "Prescriptions" },
+    { path: "/patient/invoices", label: "Invoices" },
   ];
 
   return (
@@ -69,7 +71,7 @@ const MedicalHistory = () => {
                           Doctor
                         </label>
                         <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                          {record.doctorId?.name || "N/A"}
+                          {record.doctor?.name || record.doctorId?.name || "N/A"}
                         </p>
                       </div>
                       <div style={{ gridColumn: "1 / -1" }}>
