@@ -60,8 +60,10 @@ model User {
   id           String   @id @default(uuid())
   name         String
   email        String   @unique
-  phone        String
-  passwordHash String
+  phone        String   @default("")
+  passwordHash String   @default("")
+  googleId     String?  @unique
+  avatar       String?
   role         Role     @default(PATIENT)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -70,17 +72,21 @@ model User {
   patientProfile PatientProfile?
   doctorProfile  DoctorProfile?
 
-  // Relations where the user is a patient
-  patientAppointments  Appointment[]   @relation("PatientAppointments")
-  patientRecords       MedicalRecord[] @relation("PatientRecords")
-  patientPrescriptions Prescription[]  @relation("PatientPrescriptions")
-  patientInvoices      Invoice[]       @relation("PatientInvoices")
+  patientAppointments  Appointment[]          @relation("PatientAppointments")
+  patientRecords       MedicalRecord[]        @relation("PatientRecords")
+  patientPrescriptions Prescription[]         @relation("PatientPrescriptions")
+  patientInvoices      Invoice[]              @relation("PatientInvoices")
 
-  // Relations where the user is a doctor
-  doctorAppointments  Appointment[]   @relation("DoctorAppointments")
-  doctorRecords       MedicalRecord[] @relation("DoctorRecords")
-  doctorPrescriptions Prescription[]  @relation("DoctorPrescriptions")
-  doctorInvoices      Invoice[]       @relation("DoctorInvoices")
+  doctorAppointments   Appointment[]          @relation("DoctorAppointments")
+  doctorRecords        MedicalRecord[]        @relation("DoctorRecords")
+  doctorPrescriptions  Prescription[]         @relation("DoctorPrescriptions")
+  doctorInvoices       Invoice[]              @relation("DoctorInvoices")
+  prescriptionTemplates PrescriptionTemplate[] @relation("DoctorTemplates")
+
+  sentMessages     ChatMessage[] @relation("SentMessages")
+  receivedMessages ChatMessage[] @relation("ReceivedMessages")
+  patientSessions  ChatSession[] @relation("PatientSessions")
+  doctorSessions   ChatSession[] @relation("DoctorSessions")
 }
 
 model PatientProfile {
@@ -90,8 +96,8 @@ model PatientProfile {
   gender            Gender?
   dateOfBirth       DateTime?
   bloodGroup        BloodGroup?
-  address           Json? // Embedded json for street, city, state, zipCode
-  emergencyContact  Json? // Embedded json for name, phone, relationship
+  address           Json?
+  emergencyContact  Json?
   allergies         String[]
   chronicConditions String[]
   createdAt         DateTime    @default(now())
@@ -111,7 +117,7 @@ model DoctorProfile {
   dailyStartTime      String   @default("09:00")
   dailyEndTime        String   @default("17:00")
   slotDurationMinutes Int      @default(30)
-  customBreaks        Json[] // Array of {startTime, endTime, reason}
+  customBreaks        Json[]
   isVerified          Boolean  @default(false)
   maxPatientsPerSlot  Int      @default(1)
   rating              Float    @default(0)
@@ -135,7 +141,6 @@ model Appointment {
   notesFromDoctor String?
   consultationFee Float?
 
-  // Payment info
   paymentStatus     PaymentStatus @default(UNPAID)
   razorpayOrderId   String?
   razorpayPaymentId String?
@@ -163,9 +168,10 @@ model MedicalRecord {
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
   diagnoses     String[]
   testsOrdered  String[]
-  testResults   Json[] // Array of {testName, result, date, attachmentUrl}
+  testResults   Json[]
   attachments   String[]
   notes         String?
+  prescriptionId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }
@@ -179,12 +185,60 @@ model Prescription {
 
   appointment Appointment?
 
-  medications     Json[] // {name, dosage, frequency, duration, notes}
+  medications     Json[]
   lifestyleAdvice String?
   followUpDate    DateTime?
+  diagnosis       String?
+  notes           String?
+
+  isFromTemplate   Boolean  @default(false)
+  templateId       String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PrescriptionTemplate {
+  id              String   @id @default(uuid())
+  doctorId        String
+  doctor          User     @relation("DoctorTemplates", fields: [doctorId], references: [id])
+  name            String
+  medications     Json[]
+  lifestyleAdvice String?
+  diagnosis       String?
+  notes           String?
+  followUpDays    Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ChatSession {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   User     @relation("PatientSessions", fields: [patientId], references: [id])
+  doctorId  String
+  doctor    User     @relation("DoctorSessions", fields: [doctorId], references: [id])
+  lastMessage String?
+  lastMessageAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages  ChatMessage[]
+
+  @@unique([patientId, doctorId])
+}
+
+model ChatMessage {
+  id         String      @id @default(uuid())
+  sessionId  String
+  session    ChatSession @relation(fields: [sessionId], references: [id])
+  senderId   String
+  sender     User        @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User        @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  message    String
+  isRead     Boolean     @default(false)
+  createdAt  DateTime    @default(now())
 }
 
 model Invoice {
@@ -197,9 +251,9 @@ model Invoice {
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
 
   totalAmount Float
-  items       Json[] // {label, amount}
+  items       Json[]
 
-  paymentMode       PaymentMode   @default(RAZORPAY)
+  paymentMode       PaymentMode   @default(CASH)
   paymentStatus     PaymentStatus @default(UNPAID)
   razorpayOrderId   String?
   razorpayPaymentId String?
