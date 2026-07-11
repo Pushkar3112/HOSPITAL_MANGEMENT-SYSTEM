@@ -1,31 +1,19 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const {
-  register,
-  login,
-  refreshAccessToken,
-  logout,
-} = require("../controllers/authController");
-const {
-  validationRules,
-  handleValidationErrors,
-} = require("../middlewares/validation");
+const { register, login, googleAuth, googleCallback, getMe, refreshAccessToken, logout } = require('../controllers/authController');
+const { authenticate } = require('../middlewares/authMiddleware');
 
-// Register
-router.post(
-  "/register",
-  validationRules.register,
-  handleValidationErrors,
-  register
-);
+// Public routes
+router.post('/register', register);
+router.post('/login', login);
+router.post('/refresh', refreshAccessToken);
 
-// Login
-router.post("/login", validationRules.login, handleValidationErrors, login);
+// Google OAuth
+router.get('/google', googleAuth);
+router.get('/google/callback', googleCallback);
 
-// Refresh token
-router.post("/refresh", refreshAccessToken);
-
-// Logout
-router.post("/logout", logout);
+// Protected routes
+router.get('/me', authenticate, getMe);
+router.post('/logout', authenticate, logout);
 
 module.exports = router;

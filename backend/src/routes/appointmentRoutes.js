@@ -1,24 +1,13 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { authenticate, authorize } = require("../middlewares/authMiddleware");
-const {
-  createAppointment,
-  verifyPayment,
-  handleWebhook,
-} = require("../controllers/appointmentController");
+const { bookAppointment, getAppointmentById, updateAppointmentNotes } = require('../controllers/appointmentController');
+const { authenticate } = require('../middlewares/authMiddleware');
 
-// Create appointment (patient only)
-router.post("/", authenticate, authorize("PATIENT"), createAppointment);
+// All routes require authentication
+router.use(authenticate);
 
-// Verify payment (patient only)
-router.post(
-  "/verify-payment",
-  authenticate,
-  authorize("PATIENT"),
-  verifyPayment
-);
-
-// Webhook (public - should validate webhook signature in production)
-router.post("/webhook", handleWebhook);
+router.post('/', bookAppointment);
+router.get('/:appointmentId', getAppointmentById);
+router.patch('/:appointmentId/notes', updateAppointmentNotes);
 
 module.exports = router;

@@ -1,36 +1,20 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { authenticate, authorize } = require("../middlewares/authMiddleware");
 const {
-  getStats,
-  getUsers,
-  approveDoctor,
-  rejectDoctor,
-  blockUser,
-  unblockUser,
-  getAppointments,
-  getInvoices,
-} = require("../controllers/adminController");
+    getAllUsers, getUserById, toggleUserStatus, verifyDoctor,
+    getDashboardStats, getAllAppointments, deleteUser,
+} = require('../controllers/adminController');
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
-router.use(authenticate);
-router.use(authorize("ADMIN"));
+// All routes require ADMIN role
+router.use(authenticate, authorize('ADMIN'));
 
-// Stats
-router.get("/stats", getStats);
-
-// Users
-router.get("/users", getUsers);
-router.patch("/users/:userId/block", blockUser);
-router.patch("/users/:userId/unblock", unblockUser);
-
-// Doctor approval
-router.patch("/doctors/:doctorId/approve", approveDoctor);
-router.delete("/doctors/:doctorId/reject", rejectDoctor);
-
-// Appointments
-router.get("/appointments", getAppointments);
-
-// Invoices
-router.get("/invoices", getInvoices);
+router.get('/dashboard', getDashboardStats);
+router.get('/users', getAllUsers);
+router.get('/users/:userId', getUserById);
+router.patch('/users/:userId/toggle-status', toggleUserStatus);
+router.delete('/users/:userId', deleteUser);
+router.patch('/doctors/:doctorId/verify', verifyDoctor);
+router.get('/appointments', getAllAppointments);
 
 module.exports = router;
