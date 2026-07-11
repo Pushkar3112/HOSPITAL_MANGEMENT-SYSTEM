@@ -1,164 +1,157 @@
-const { prisma } = require("../config/database");
-const { redisClient } = require("../config/redis");
-const { sendResponse } = require("../utils/apiResponse");
-const ApiError = require("../utils/apiError");
-const { generateAvailableSlots } = require("../utils/appointmentUtils");
+const { prisma } = require('../config/database');
+const { sendResponse } = require('../utils/apiResponse');
+const ApiError = require('../utils/apiError');
+const { setCache, getCache } = require('../config/redis');
+const { generateAvailableSlots } = require('../utils/appointmentUtils');
 
-/**
- * Search doctors
- */
 const searchDoctors = async (req, res, next) => {
-  try {
-    const {
-      specialization,
-      name,
-      hospital,
-      minFee,
-      maxFee,
-      page = 1,
-      limit = 10,
-    } = req.query;
+    try {
+        const {
+            specialization, search, name, date, minFee, maxFee,
+            page = 1, limit = 12, sort = 'rating',
+        } = req.query;
 
-    // Build Cache Key
-    const cacheKey = `searchDoctors:${JSON.stringify(req.query)}`;
+        const searchTerm = search || name;
+        const cacheKey = `doctor-search:${JSON.stringify(req.query)}`;
+        const cached = await getCache(cacheKey);
+        if (cached) return sendResponse(res, 200, cached);
 
-    // Try Redis Cache first
-    if (redisClient.isReady) {
-      const cachedResult = await redisClient.get(cacheKey);
-      if (cachedResult) {
-        return sendResponse(res, 200, JSON.parse(cachedResult), "Fetched from cache");
-      }
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const userWhere = { role: 'DOCTOR', isActive: true };
+        if (searchTerm) {
+            userWhere.OR = [
+                { name: { contains: searchTerm, mode: 'insensitive' } },
+                { email: { contains: searchTerm, mode: 'insensitive' } },
+            ];
+        }
+
+        // Build profile filter - don't require isVerified to show all doctors
+        const profileWhere = {};
+        if (specialization) {
+            profileWhere.specialization = { contains: specialization, mode: 'insensitive' };
+        }
+        if (minFee !== undefined) profileWhere.consultationFee = { ...(profileWhere.consultationFee || {}), gte: parseFloat(minFee) };
+        if (maxFee !== undefined) profileWhere.consultationFee = { ...(profileWhere.consultationFee || {}), lte: parseFloat(maxFee) };
+
+        const orderBy = sort === 'fee_asc'
+            ? { doctorProfile: { consultationFee: 'asc' } }
+            : sort === 'fee_desc'
+            ? { doctorProfile: { consultationFee: 'desc' } }
+            : sort === 'experience'
+            ? { doctorProfile: { yearsOfExperience: 'desc' } }
+            : { doctorProfile: { rating: 'desc' } };
+
+        const whereClause = {
+            ...userWhere,
+            ...(Object.keys(profileWhere).length > 0 && { doctorProfile: profileWhere }),
+            doctorProfile: { isNot: null, ...profileWhere }, // ensure profile exists
+        };
+
+        const [doctors, total] = await Promise.all([
+            prisma.user.findMany({
+                where: whereClause,
+                select: {
+                    id: true, name: true, email: true, avatar: true,
+                    doctorProfile: {
+                        select: {
+                            specialization: true, qualifications: true, yearsOfExperience: true,
+                            hospitalName: true, consultationFee: true, availableDays: true,
+                            dailyStartTime: true, dailyEndTime: true, isVerified: true,
+                            rating: true, totalRatings: true,
+                        },
+                    },
+                },
+                skip,
+                take: parseInt(limit),
+                orderBy,
+            }),
+            prisma.user.count({ where: whereClause }),
+        ]);
+
+        const result = {
+            doctors,
+            pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / parseInt(limit)) },
+        };
+
+        await setCache(cacheKey, result, 120); // shorter TTL for search
+        return sendResponse(res, 200, result);
+    } catch (error) {
+        next(error);
     }
-
-    const take = parseInt(limit);
-    const skip = (parseInt(page) - 1) * take;
-
-    const filter = { isVerified: true };
-
-    if (specialization) {
-      filter.specialization = { contains: specialization, mode: 'insensitive' };
-    }
-
-    if (minFee || maxFee) {
-      filter.consultationFee = {};
-      if (minFee) filter.consultationFee.gte = parseFloat(minFee);
-      if (maxFee) filter.consultationFee.lte = parseFloat(maxFee);
-    }
-
-    if (hospital) {
-      filter.hospitalName = { contains: hospital, mode: 'insensitive' };
-    }
-
-    if (name) {
-      filter.user = {
-        name: { contains: name, mode: 'insensitive' }
-      };
-    }
-
-    const doctors = await prisma.doctorProfile.findMany({
-      where: filter,
-      include: {
-        user: { select: { name: true, email: true, phone: true } },
-      },
-      take,
-      skip,
-      orderBy: { rating: 'desc' },
-    });
-
-    const total = await prisma.doctorProfile.count({ where: filter });
-
-    const resultData = {
-      doctors,
-      pagination: { page: parseInt(page), limit: take, total },
-    };
-
-    // Cache the result for 1 hour
-    if (redisClient.isReady) {
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(resultData));
-    }
-
-    return sendResponse(res, 200, resultData);
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Get doctor details
- */
-const getDoctorDetail = async (req, res, next) => {
-  try {
-    const { doctorId } = req.params;
+const getDoctorById = async (req, res, next) => {
+    try {
+        const { doctorId } = req.params;
+        const cacheKey = `doctor:public:${doctorId}`;
+        const cached = await getCache(cacheKey);
+        if (cached) return sendResponse(res, 200, cached);
 
-    const cacheKey = `doctorDetail:${doctorId}`;
-    if (redisClient.isReady) {
-      const cached = await redisClient.get(cacheKey);
-      if (cached) {
-        return sendResponse(res, 200, { doctor: JSON.parse(cached) }, "Fetched from cache");
-      }
+        const doctor = await prisma.user.findUnique({
+            where: { id: doctorId, role: 'DOCTOR', isActive: true },
+            select: { id: true, name: true, email: true, avatar: true, doctorProfile: true },
+        });
+
+        if (!doctor || !doctor.doctorProfile) throw new ApiError(404, 'Doctor not found');
+
+        await setCache(cacheKey, doctor, 600);
+        return sendResponse(res, 200, doctor);
+    } catch (error) {
+        next(error);
     }
-
-    const doctor = await prisma.doctorProfile.findUnique({
-      where: { userId: doctorId },
-      include: {
-        user: { select: { id: true, name: true, email: true, phone: true } }
-      }
-    });
-
-    if (!doctor) {
-      throw new ApiError(404, "Doctor not found");
-    }
-
-    if (redisClient.isReady) {
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(doctor));
-    }
-
-    return sendResponse(res, 200, { doctor });
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Get available slots for a doctor
- */
 const getDoctorSlots = async (req, res, next) => {
-  try {
-    const { doctorId } = req.params;
-    const { date } = req.query;
+    try {
+        const { doctorId } = req.params;
+        const { date } = req.query;
+        if (!date) throw new ApiError(400, 'Date is required');
 
-    if (!date) {
-      throw new ApiError(400, "Date is required");
+        const cacheKey = `doctor:slots:${doctorId}:${date}`;
+        const cached = await getCache(cacheKey);
+        if (cached) return sendResponse(res, 200, cached);
+
+        const doctor = await prisma.doctorProfile.findUnique({ where: { userId: doctorId } });
+        if (!doctor) throw new ApiError(404, 'Doctor not found');
+
+        const appointments = await prisma.appointment.findMany({
+            where: {
+                doctorId,
+                date: {
+                    gte: new Date(date),
+                    lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+                },
+                status: { notIn: ['CANCELLED'] },
+            },
+        });
+
+        const slots = generateAvailableSlots(doctor, date, appointments);
+        await setCache(cacheKey, slots, 60);
+        return sendResponse(res, 200, slots);
+    } catch (error) {
+        next(error);
     }
-
-    // Attempt to find by userId (which is also the user id in Prisma)
-    const doctor = await prisma.doctorProfile.findFirst({
-      where: {
-        OR: [
-          { id: doctorId },
-          { userId: doctorId }
-        ]
-      }
-    });
-
-    if (!doctor) {
-      throw new ApiError(404, "Doctor not found");
-    }
-
-    const appointments = await prisma.appointment.findMany({
-      where: { doctorId: doctor.userId, date: new Date(date) }
-    });
-
-    const slots = generateAvailableSlots(doctor, date, appointments);
-
-    return sendResponse(res, 200, { slots });
-  } catch (error) {
-    next(error);
-  }
 };
 
-module.exports = {
-  searchDoctors,
-  getDoctorDetail,
-  getDoctorSlots,
+const getSpecializations = async (req, res, next) => {
+    try {
+        const cacheKey = 'doctor-search:specializations';
+        const cached = await getCache(cacheKey);
+        if (cached) return sendResponse(res, 200, cached);
+
+        const profiles = await prisma.doctorProfile.findMany({
+            select: { specialization: true },
+            distinct: ['specialization'],
+            orderBy: { specialization: 'asc' },
+        });
+
+        const specializations = profiles.map(p => p.specialization).filter(Boolean);
+        await setCache(cacheKey, specializations, 3600);
+        return sendResponse(res, 200, specializations);
+    } catch (error) {
+        next(error);
+    }
 };
+
+module.exports = { searchDoctors, getDoctorById, getDoctorSlots, getSpecializations };

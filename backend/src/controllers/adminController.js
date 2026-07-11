@@ -1,255 +1,221 @@
-const { prisma } = require("../config/database");
-const { sendResponse } = require("../utils/apiResponse");
-const ApiError = require("../utils/apiError");
+const { prisma } = require('../config/database');
+const { sendResponse } = require('../utils/apiResponse');
+const ApiError = require('../utils/apiError');
+const { setCache, getCache, deleteCachePattern } = require('../config/redis');
 
-/**
- * Get admin dashboard stats
- */
-const getStats = async (req, res, next) => {
-  try {
-    const totalPatients = await prisma.user.count({ where: { role: "PATIENT" } });
-    const totalDoctors = await prisma.user.count({ where: { role: "DOCTOR" } });
-    const totalAppointments = await prisma.appointment.count();
+const getAllUsers = async (req, res, next) => {
+    try {
+        const { role, page = 1, limit = 20, search } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Today's appointments
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+        const where = {};
+        if (role) where.role = role;
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+            ];
+        }
 
-    const todaysAppointments = await prisma.appointment.count({
-      where: {
-        date: { gte: today, lt: tomorrow },
-      },
-    });
+        const [users, total] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                select: {
+                    id: true, name: true, email: true, phone: true, role: true,
+                    isActive: true, avatar: true, createdAt: true,
+                    doctorProfile: { select: { specialization: true, isVerified: true } },
+                },
+                skip,
+                take: parseInt(limit),
+                orderBy: { createdAt: 'desc' },
+            }),
+            prisma.user.count({ where }),
+        ]);
 
-    // Total revenue
-    const revenueAgg = await prisma.invoice.aggregate({
-      where: { paymentStatus: "PAID" },
-      _sum: { totalAmount: true }
-    });
-    const totalRevenue = revenueAgg._sum.totalAmount || 0;
-
-    return sendResponse(res, 200, {
-      totalPatients,
-      totalDoctors,
-      totalAppointments,
-      todaysAppointments,
-      totalRevenue,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Get all users
- */
-const getUsers = async (req, res, next) => {
-  try {
-    const { role, search, page = 1, limit = 10 } = req.query;
-
-    // Prisma pagination uses skip and take
-    const take = parseInt(limit);
-    const skip = (parseInt(page) - 1) * take;
-
-    const filter = {};
-    if (role) filter.role = role;
-    if (search) {
-      filter.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
+        return sendResponse(res, 200, {
+            users,
+            pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / parseInt(limit)) },
+        });
+    } catch (error) {
+        next(error);
     }
-
-    const users = await prisma.user.findMany({
-      where: filter,
-      take,
-      skip,
-      orderBy: { createdAt: 'desc' }
-    });
-
-    const total = await prisma.user.count({ where: filter });
-
-    return sendResponse(res, 200, {
-      users,
-      pagination: { page: parseInt(page), limit: take, total },
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Approve doctor
- */
-const approveDoctor = async (req, res, next) => {
-  try {
-    const { doctorId } = req.params;
-
-    const doctor = await prisma.doctorProfile.findUnique({ where: { userId: doctorId } });
-    if (!doctor) {
-      throw new ApiError(404, "Doctor not found");
+const getUserById = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                patientProfile: true,
+                doctorProfile: true,
+            },
+        });
+        if (!user) throw new ApiError(404, 'User not found');
+        return sendResponse(res, 200, user);
+    } catch (error) {
+        next(error);
     }
-
-    const updated = await prisma.doctorProfile.update({
-      where: { userId: doctorId },
-      data: { isVerified: true }
-    });
-
-    return sendResponse(res, 200, updated, "Doctor approved successfully");
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Reject doctor
- */
-const rejectDoctor = async (req, res, next) => {
-  try {
-    const { doctorId } = req.params;
+const toggleUserStatus = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new ApiError(404, 'User not found');
 
-    const doctor = await prisma.doctorProfile.findUnique({ where: { userId: doctorId } });
-    if (!doctor) {
-      throw new ApiError(404, "Doctor not found");
+        const updated = await prisma.user.update({
+            where: { id: userId },
+            data: { isActive: !user.isActive },
+        });
+
+        return sendResponse(res, 200, { id: updated.id, isActive: updated.isActive }, `User ${updated.isActive ? 'activated' : 'deactivated'} successfully`);
+    } catch (error) {
+        next(error);
     }
-
-    // Since we use onDelete: Cascade in Prisma schema, deleting the User will delete the DoctorProfile
-    await prisma.user.delete({ where: { id: doctorId } });
-
-    return sendResponse(res, 200, {}, "Doctor registration rejected");
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Block user
- */
-const blockUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
+const verifyDoctor = async (req, res, next) => {
+    try {
+        const { doctorId } = req.params;
+        const profile = await prisma.doctorProfile.findUnique({ where: { userId: doctorId } });
+        if (!profile) throw new ApiError(404, 'Doctor profile not found');
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new ApiError(404, "User not found");
+        const updated = await prisma.doctorProfile.update({
+            where: { userId: doctorId },
+            data: { isVerified: !profile.isVerified },
+        });
+
+        await deleteCachePattern('doctor-search:*');
+        return sendResponse(res, 200, updated, `Doctor ${updated.isVerified ? 'verified' : 'unverified'} successfully`);
+    } catch (error) {
+        next(error);
     }
-
-    const updated = await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: false }
-    });
-
-    return sendResponse(res, 200, updated, "User blocked successfully");
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Unblock user
- */
-const unblockUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
+const getDashboardStats = async (req, res, next) => {
+    try {
+        const cacheKey = 'admin:dashboard';
+        const cached = await getCache(cacheKey);
+        if (cached) return sendResponse(res, 200, cached);
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new ApiError(404, "User not found");
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        const [
+            totalPatients,
+            totalDoctors,
+            totalAppointments,
+            todayAppointments,
+            pendingAppointments,
+            thisMonthAppointments,
+            recentUsers,
+        ] = await Promise.all([
+            prisma.user.count({ where: { role: 'PATIENT' } }),
+            prisma.user.count({ where: { role: 'DOCTOR' } }),
+            prisma.appointment.count(),
+            prisma.appointment.count({ where: { date: { gte: today, lt: tomorrow } } }),
+            prisma.appointment.count({ where: { status: 'PENDING' } }),
+            prisma.appointment.count({ where: { createdAt: { gte: thisMonthStart } } }),
+            prisma.user.findMany({
+                orderBy: { createdAt: 'desc' },
+                take: 10,
+                select: { id: true, name: true, email: true, role: true, avatar: true, createdAt: true },
+            }),
+        ]);
+
+        const data = {
+            totalUsers: totalPatients + totalDoctors,
+            totalPatients,
+            totalDoctors,
+            totalAppointments,
+            todayAppointments,
+            pendingAppointments,
+            completedAppointments: await prisma.appointment.count({ where: { status: 'COMPLETED' } }),
+            thisMonthAppointments,
+            recentUsers,
+            recentAppointments: await prisma.appointment.findMany({
+                take: 8,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    patient: { select: { id: true, name: true } },
+                    doctor: { select: { id: true, name: true } },
+                },
+            }),
+        };
+
+        await setCache(cacheKey, data, 120);
+        return sendResponse(res, 200, data);
+    } catch (error) {
+        next(error);
     }
-
-    const updated = await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: true }
-    });
-
-    return sendResponse(res, 200, updated, "User unblocked successfully");
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Get all appointments
- */
-const getAppointments = async (req, res, next) => {
-  try {
-    const { status, doctorId, patientId, page = 1, limit = 10 } = req.query;
+const getAllAppointments = async (req, res, next) => {
+    try {
+        const { status, page = 1, limit = 20, date } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const take = parseInt(limit);
-    const skip = (parseInt(page) - 1) * take;
+        const where = {};
+        if (status) where.status = status;
+        if (date) {
+            const d = new Date(date);
+            const d2 = new Date(date);
+            d2.setDate(d2.getDate() + 1);
+            where.date = { gte: d, lt: d2 };
+        }
 
-    const filter = {};
-    if (status) filter.status = status;
-    if (doctorId) filter.doctorId = doctorId;
-    if (patientId) filter.patientId = patientId;
+        const [appointments, total] = await Promise.all([
+            prisma.appointment.findMany({
+                where,
+                include: {
+                    patient: { select: { id: true, name: true, email: true, avatar: true } },
+                    doctor: {
+                        select: {
+                            id: true, name: true, email: true, avatar: true,
+                            doctorProfile: { select: { specialization: true } },
+                        },
+                    },
+                },
+                skip,
+                take: parseInt(limit),
+                orderBy: { date: 'desc' },
+            }),
+            prisma.appointment.count({ where }),
+        ]);
 
-    const appointments = await prisma.appointment.findMany({
-      where: filter,
-      include: {
-        doctor: { select: { id: true, name: true, email: true } },
-        patient: { select: { id: true, name: true, email: true } }
-      },
-      take,
-      skip,
-      orderBy: { date: 'desc' }
-    });
-
-    const total = await prisma.appointment.count({ where: filter });
-
-    return sendResponse(res, 200, {
-      appointments,
-      pagination: { page: parseInt(page), limit: take, total },
-    });
-  } catch (error) {
-    next(error);
-  }
+        return sendResponse(res, 200, {
+            appointments,
+            pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / parseInt(limit)) },
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
-/**
- * Get all invoices
- */
-const getInvoices = async (req, res, next) => {
-  try {
-    const { status, doctorId, page = 1, limit = 10 } = req.query;
+const deleteUser = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new ApiError(404, 'User not found');
+        if (user.role === 'ADMIN') throw new ApiError(403, 'Cannot delete admin users');
 
-    const take = parseInt(limit);
-    const skip = (parseInt(page) - 1) * take;
-
-    const filter = {};
-    if (status) filter.paymentStatus = status;
-    if (doctorId) filter.doctorId = doctorId;
-
-    const invoices = await prisma.invoice.findMany({
-      where: filter,
-      include: {
-        doctor: { select: { id: true, name: true, email: true } },
-        patient: { select: { id: true, name: true, email: true } }
-      },
-      take,
-      skip,
-      orderBy: { createdAt: 'desc' }
-    });
-
-    const total = await prisma.invoice.count({ where: filter });
-
-    return sendResponse(res, 200, {
-      invoices,
-      pagination: { page: parseInt(page), limit: take, total },
-    });
-  } catch (error) {
-    next(error);
-  }
+        await prisma.user.delete({ where: { id: userId } });
+        return sendResponse(res, 200, {}, 'User deleted successfully');
+    } catch (error) {
+        next(error);
+    }
 };
 
 module.exports = {
-  getStats,
-  getUsers,
-  approveDoctor,
-  rejectDoctor,
-  blockUser,
-  unblockUser,
-  getAppointments,
-  getInvoices,
+    getAllUsers,
+    getUserById,
+    toggleUserStatus,
+    verifyDoctor,
+    getDashboardStats,
+    getAllAppointments,
+    deleteUser,
 };
