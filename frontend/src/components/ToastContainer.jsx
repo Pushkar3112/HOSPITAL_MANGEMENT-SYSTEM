@@ -1,51 +1,30 @@
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { removeToast } from "../features/uiSlice";
-import {
-  MdCheckCircle,
-  MdError,
-  MdWarning,
-  MdInfoOutline,
-} from "react-icons/md";
+import { ToastContainer as ReactToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const Toast = ({ toast }) => {
-  const dispatch = useDispatch();
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      dispatch(removeToast(toast.id));
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [toast.id, dispatch]);
-
-  const icons = {
-    success: <MdCheckCircle />,
-    error: <MdError />,
-    warning: <MdWarning />,
-    info: <MdInfoOutline />,
-  };
-
-  return (
-    <div className={`toast ${toast.type || "info"}`}>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        {icons[toast.type || "info"]}
-        <span>{toast.message}</span>
-      </div>
-    </div>
-  );
-};
-
-export const ToastContainer = () => {
-  const toasts = useSelector((state) => state.ui.toasts);
-
-  return (
-    <div className="toast-container">
-      {toasts.map((toast) => (
-        <Toast key={toast.id} toast={toast} />
-      ))}
-    </div>
-  );
-};
+const ToastContainer = () => (
+  <ReactToastContainer
+    position="top-right"
+    autoClose={4000}
+    hideProgressBar={false}
+    newestOnTop
+    closeOnClick
+    rtl={false}
+    pauseOnFocusLoss
+    draggable
+    pauseOnHover
+    theme="dark"
+    toastStyle={{
+      background: "rgba(8, 15, 28, 0.98)",
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      borderRadius: "12px",
+      backdropFilter: "blur(20px)",
+      color: "#f0f4ff",
+      fontSize: "14px",
+      fontFamily: "Inter, sans-serif",
+      boxShadow: "0 8px 40px rgba(0, 0, 0, 0.5)",
+    }}
+  />
+);
 
 export default ToastContainer;
