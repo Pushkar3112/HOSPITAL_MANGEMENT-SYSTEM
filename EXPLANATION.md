@@ -1,663 +1,314 @@
-# MedCare Hospital Management System - Complete Architectural Blueprint & Implementation Manual
+# MedCare Hospital Management System - Complete System Architecture & Reference Manual
 
-This manual provides an exhaustive, production-grade guide to the architecture, services, database constraints, state machines, protocols, and deployment structure of the MedCare Hospital Management System (HMS).
+Welcome to the comprehensive implementation manual for the MedCare Hospital Management System (HMS). This document is designed to walk you through the system's software architecture, explaining not just **what** is implemented, but **why** it was designed this way, **how** the modules communicate, and **where** each logic block lives within the codebase.
 
 ---
 
-## 1. Directory Structure & File-by-File Blueprint
+## 1. System Overview & Direct Service Networking
 
-The repository is structured as a decoupled monorepo containing three core application folders and infrastructure configurations.
+MedCare HMS is built on a **fully-decoupled, service-oriented architecture**. It consists of five main physical services: the React Single Page Application (frontend client), the Express.js Application Server (backend business authority), the Python FastAPI Service (AI retrieval-augmented generation engine), and the PostgreSQL and Redis data storage layers.
 
-```text
-HOSPITAL_MANGEMENT-SYSTEM/
-│
-├── docker-compose.yml          # Top-level Docker Orchestration (5 services)
-├── architecture.md             # High-level system architecture blueprint
-├── EXPLANATION.md              # ⭐ THIS FILE (Ultimate Deep-Dive System Manual)
-│
-├── backend/                    # Core Transactional REST & WS Backend (Node/Express)
-│   ├── Dockerfile              # Backend container build specification
-│   ├── package.json            # Node.js manifest and dependency locks
-│   ├── seed.js                 # Prisma Database Seeding Script (admin, doctors, patients)
-│   ├── .env                    # Environment variables configuration (ignored by git)
-│   │
-│   ├── prisma/
-│   │   ├── schema.prisma       # Database schema (Data models, relations, enums)
-│   │   └── migrations/         # Auto-generated SQL migration files
-│   │
-│   └── src/
-│       ├── index.js            # App Bootstrapper & Middleware orchestrator
-│       ├── config/
-│       │   ├── database.js     # Prisma Client initialization & connection pool
-│       │   ├── redis.js        # Redis client wrapper & caching utilities
-│       │   └── passport.js     # Passport setup with Google OAuth 2.0 Strategy
-│       │
-│       ├── middlewares/
-│       │   ├── authMiddleware.js    # Access control & JWT verification gates
-│       │   ├── errorHandler.js      # Global HTTP error capture and formatting
-│       │   └── validation.js        # Request parameter validation chains
-│       │
-│       ├── controllers/
-│       │   ├── authController.js         # Login, Register, Google OAuth, Refresh, Logout
-│       │   ├── patientController.js      # Profiles, appointments, history, prescriptions
-│       │   ├── doctorController.js       # Profile, appointments, slots, template presets
-│       │   ├── adminController.js        # Dashboard statistics, user directory, verification
-│       │   ├── appointmentController.js  # Scheduling validation, payments, Razorpay webhooks
-│       │   ├── doctorSearchController.js # Specialized search queries w/ Redis caching
-│       │   ├── chatController.js         # Chat sessions & history retrievals
-│       │   └── ragChatController.js      # AI RAG pipeline client proxies
-│       │
-│       ├── routes/
-│       │   ├── authRoutes.js             # Credentials and OAuth callback routes
-│       │   ├── patientRoutes.js          # Patient endpoints
-│       │   ├── doctorRoutes.js           # Doctor endpoints
-│       │   ├── adminRoutes.js            # System administration endpoints
-│       │   ├── doctorSearchRoutes.js     # Search and slots lookup routes
-│       │   ├── appointmentRoutes.js      # Booking and payment verification routes
-│       │   ├── chatRoutes.js             # Real-time WebSockets metadata routes
-│       │   └── ragChatRoutes.js          # AI RAG endpoints
-│       │
-│       └── utils/
-│           ├── apiError.js          # Extensible custom error class
-│           ├── apiResponse.js       # JSON response standardization helper
-│           ├── passwordUtils.js     # BCrypt helper functions
-│           ├── tokenUtils.js        # JWT generation and validation helper
-│           ├── appointmentUtils.js  # Slot allocation algorithm
-│           └── socketManager.js     # WebSockets room configuration & events
-│
-├── frontend/                   # React Single Page Application (Client)
-│   ├── Dockerfile              # Multi-stage production build configuration
-│   ├── package.json            # NPM dependencies configuration
-│   └── src/
-│       ├── index.js            # React mount point
-│       ├── index.css           # Styling design tokens & custom layouts
-│       ├── App.jsx             # Top-level Routing and Provider wrapping
-│       │
-│       ├── components/
-│       │   ├── AppLayout.jsx        # Glassmorphic navbar & responsive sidebar
-│       │   ├── ProtectedRoute.jsx   # Role-based route guard
-│       │   └── ToastContainer.jsx   # Custom status notification system
-│       │
-│       ├── features/
-│       │   ├── store.js             # Redux Store config
-│       │   └── authSlice.js         # Auth state slice
-│       │
-│       ├── services/
-│       │   └── api.js               # Axios Client w/ refresh token interceptors
-│       │
-│       └── pages/
-│           ├── LandingPage.jsx      # Portal entry point
-│           ├── LoginPage.jsx        # Credentials login panel
-│           ├── RegisterPage.jsx     # Registration form (Patient/Doctor selection)
-│           ├── PatientDashboard.jsx # Quick stats & next appointment card
-│           ├── AppointmentBooking.jsx # Doctor booking page
-│           ├── DoctorAppointments.jsx # Doctor management board
-│           ├── DoctorAvailability.jsx # Schedule configuration dashboard
-│           ├── DoctorChatPage.jsx   # Doctor's real-time messaging panel
-│           ├── PatientDoctorChat.jsx # Patient's real-time messaging panel
-│           └── RAGChatbot.jsx       # AI Assistant interactive chat
-│
-└── rag_service/                # Python FastAPI AI RAG Service
-    ├── Dockerfile              # Python Docker runtime specification
-    ├── requirements.txt        # PIP dependencies manifest
-    ├── main.py                 # FastAPI Web Server entry point
-    ├── rag_pipeline.py         # LangGraph workflow, Hybrid Search & RRF engine
-    └── documents/              # Custom medical guides & directories (ChromaDB source)
-        ├── diabetes_guide.txt
-        ├── doctors_directory.txt
-        ├── general_health.txt
-        └── hospital_info.txt
+```
++-------------------------------------------------------------------------+
+|                              LOCAL MACHINE                              |
+|                                                                         |
+|  ┌──────────────────┐           REST API            ┌────────────────┐  |
+|  │    React SPA     │◄─────────────────────────────▶│  Express API   │  |
+|  │   (Port 3000)    │◄───────WebSockets Handshake──▶│  (Port 5000)   │  |
+|  └──────────────────┘                               └────────────────┘  |
+|                                                             │           |
+|                                                     ┌───────┼───────┐   |
+|                                                     │       │       │   |
+|                                                     ▼       ▼       ▼   |
+|                                                ┌────────┐┌──────┐┌──────┐|
+|                                                │FastAPI ││Postg ││Redis │|
+|                                                │  RAG   ││ -SQL ││Cache │|
+|                                                │ (8000) ││(5433)││(6380)│|
+|                                                └────────┘└──────┘└──────┘|
++-------------------------------------------------------------------------+
 ```
 
----
-
-## 2. Environment Variables Specification
-
-The system uses environment configurations for security and customization.
-
-| Environment Variable | Service | Default Value | Purpose | Impact of Absence |
-|---|---|---|---|---|
-| `PORT` | Backend | `5000` | Port backend runs on | Defaults to `5000` |
-| `DATABASE_URL` | Backend | None | PostgreSQL connection URI | App crashes during boot |
-| `REDIS_URL` | Backend | None | Redis connection URI | Caching disabled, fails over |
-| `FRONTEND_URL` | Backend | `http://localhost:3000` | CORS permitted origin | CORS blocks API requests |
-| `JWT_SECRET` | Backend | None | Access token signature key | Token generation fails |
-| `JWT_REFRESH_SECRET` | Backend | None | Refresh token signature key | Session refreshes fail |
-| `GOOGLE_CLIENT_ID` | Backend | None | Google Cloud console Client ID | Google OAuth disabled |
-| `GOOGLE_CLIENT_SECRET` | Backend | None | Google Cloud Secret | OAuth exchange crashes |
-| `GOOGLE_CALLBACK_URL` | Backend | None | OAuth redirect target | Callback fails |
-| `GROQ_API_KEY` | Backend/RAG | None | API Key for Groq LLM | Chatbot returns 500 error |
-| `RAG_SERVICE_URL` | Backend | `http://localhost:8000` | RAG service backend endpoint | RAG chatbot unreachable |
+### Why We Removed Nginx:
+In standard web deployments, Nginx acts as a reverse proxy, routing incoming port `80` traffic to either the backend or frontend containers based on path matching (e.g., `/api/*` goes to Express, while `/*` goes to React). 
+However, in this local development and staging orchestration, Nginx introduces unnecessary networking latency, connection pooling complications, and CORS proxy routing overhead. 
+By removing Nginx, we allow:
+* **Direct Handshake**: React connects directly to Express on port `5000` using standard HTTP and WebSockets.
+* **Simplified Port Mapping**: Developers can inspect, debug, and log queries from the FastAPI server directly on `localhost:8000` and database tables on `localhost:5433`.
+* **Zero Reverse Proxy Failures**: Eliminates Nginx "502 Bad Gateway" crashes caused by upstream service restarts.
 
 ---
 
-## 3. Database Engine & Prisma Schema Models
+## 2. Directory Structure & File Map
 
-Prisma ORM provides type safety and SQL translation for PostgreSQL.
+The codebase is organized logically, separating concerns across client interfaces, transaction logic, database models, and artificial intelligence pipelines.
 
-### 3.1 Schema Declarations & Relations
+### 2.1 Backend Project Directory (`/backend`)
+* **`src/index.js`**: The central bootstrapper. It configures the Express middleware chain, establishes database and Redis socket handles, mounts routers, and binds HTTP servers to port `5000`.
+* **`src/config/database.js`**: Instantiates a singleton `PrismaClient` reference with a pre-configured connection pool to avoid resource exhaustion under concurrent request spikes.
+* **`src/config/redis.js`**: Contains the connection logic for Redis and custom abstract caching functions like `getCache`, `setCache`, and `deleteCachePattern`.
+* **`src/config/passport.js`**: Implements the passport plugin strategy for Google OAuth 2.0. Maps OAuth profile callbacks into structured User database writes.
+* **`src/controllers/`**: House the core transaction handlers. They validate permissions, perform CRUD operations via Prisma, manage cache evictions, and format JSON responses.
+* **`src/routes/`**: Register REST paths and bind them to their respective middleware chains (Authentication, Validation, Authorization).
+* **`src/utils/socketManager.js`**: Configures the Socket.IO WebSockets event loops, handles room joins on handshake authentication, and routes real-time chat messages.
 
-```prisma
-enum Role {
-  PATIENT
-  DOCTOR
-  ADMIN
-}
+### 2.2 Frontend Project Directory (`/frontend`)
+* **`src/App.jsx`**: Orchestrates client-side routing using React Router DOM. Wraps all routes in state provider containers.
+* **`src/components/AppLayout.jsx`**: Provides a premium dark glassmorphic interface shell featuring sidebar navigation, user drop-downs, and layout wrapper controls.
+* **`src/components/ProtectedRoute.jsx`**: Route-level security middleware. Gates page transitions based on active tokens and required user roles.
+* **`src/services/api.js`**: Manages outgoing HTTP calls using Axios. Incorporates interceptor hooks to automatically inject headers and execute silent JWT token refreshes upon expiration.
+* **`src/pages/`**: Contains the interactive page views (dashboards, chat, booking, prescriptions, user administration boards).
 
-enum VisitType {
-  ONLINE
-  OFFLINE
-}
+### 2.3 AI RAG Directory (`/rag_service`)
+* **`main.py`**: The web server entry point using Uvicorn and FastAPI. Hosts `/chat` query endpoints and `/health` checkers.
+* **`rag_pipeline.py`**: Builds the LangGraph workflow graph, implements dense and sparse search retrievers, and calculates Reciprocal Rank Fusion scores.
+* **`documents/`**: A database of plain text (.txt) files containing hospital facts, scheduling rules, directories, and diabetes guides. These files are processed into vector chunks for search operations.
 
-enum AppointmentStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-  NO_SHOW
-}
+---
 
-model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  phone        String   @default("")
-  passwordHash String   @default("")
-  googleId     String?  @unique
-  avatar       String?
-  role         Role     @default(PATIENT)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+## 3. Environment Variables Checklist & Security Config
 
-  patientProfile PatientProfile?
-  doctorProfile  DoctorProfile?
-  // User relations
-  prescriptionTemplates PrescriptionTemplate[] @relation("DoctorTemplates")
-  sentMessages     ChatMessage[] @relation("SentMessages")
-  receivedMessages ChatMessage[] @relation("ReceivedMessages")
-  patientSessions  ChatSession[] @relation("PatientSessions")
-  doctorSessions   ChatSession[] @relation("DoctorSessions")
-}
+Because this repository is pushed to a public remote on GitHub, **never commit raw passwords, secrets, or API keys directly to files**. The system is built to ingest credentials dynamically at runtime using environment variables.
 
-model PatientProfile {
-  id                String      @id @default(uuid())
-  userId            String      @unique
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gender            Gender?
-  dateOfBirth       DateTime?
-  bloodGroup        BloodGroup?
-  address           Json?
-  emergencyContact  Json?
-  allergies         String[]
-  chronicConditions String[]
-}
+### 3.1 Key Variable Definitions
+* **`DATABASE_URL`**: Instructs Prisma where to find the PostgreSQL database. Format:
+  `postgresql://<username>:<password>@<host>:<port>/<dbname>?schema=public`
+* **`REDIS_URL`**: Used by backend caching methods to resolve the Redis TCP listener.
+* **`JWT_SECRET` & `JWT_REFRESH_SECRET`**: High-entropy strings used by JWT utility scripts to sign and verify session tokens.
+* **`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`**: API keys issued by the Google Cloud Console to allow users to sign in using their Google account profiles.
+* **`GROQ_API_KEY`**: The developer API key used to query the Llama 3.3 / Llama 3.1 models hosted on Groq Cloud.
 
-model DoctorProfile {
-  id                  String   @id @default(uuid())
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  specialization      String
-  qualifications      String[]
-  yearsOfExperience   Int
-  hospitalName        String
-  consultationFee     Float
-  availableDays       Int[]    @default([1, 2, 3, 4, 5])
-  dailyStartTime      String   @default("09:00")
-  dailyEndTime        String   @default("17:00")
-  slotDurationMinutes Int      @default(30)
-  customBreaks        Json[]
-  isVerified          Boolean  @default(false)
-  maxPatientsPerSlot  Int      @default(1)
-  rating              Float    @default(0)
-}
+### 3.2 Dynamic Interpolation in Docker
+Our [docker-compose.yml](file:///c:/hospital%20managment/HOSPITAL_MANGEMENT-SYSTEM/docker-compose.yml) uses syntax like `GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}`. At startup, Docker Compose reads the `.env` file in the root directory and interpolates these keys into the container environment. This keeps secrets out of the codebase while making them available during runtime.
+
+---
+
+## 4. PostgreSQL Database Schema & Relational Integrity
+
+The database is built on a highly-normalized relational structure mapped using Prisma ORM. 
+
+```
+                                 ┌───────────────┐
+                                 │     User      │
+                                 └───────────────┘
+                                   /           \
+                           1:1 (Pat)           1:1 (Doc)
+                                 /               \
+                                ▼                 ▼
+                      ┌──────────────┐     ┌──────────────┐
+                      │PatientProfile│     │DoctorProfile │
+                      └──────────────┘     └──────────────┘
+                             │                    │
+                             │ 1:N                │ 1:N
+                             ▼                    ▼
+                      ┌──────────────────────────────────┐
+                      │           Appointment            │
+                      └──────────────────────────────────┘
+                             │          │          │
+                     1:1 (Rx)│    1:N   │1:N       │1:N
+                             ▼    (Rec) ▼ (Inv)    ▼ (Chat)
+                      ┌────────────┐┌─────────┐┌───────┐┌───────────┐
+                      │Prescription││MedicalRec││Invoice││ChatMessage│
+                      └────────────┘└─────────┘└───────┘└───────────┘
 ```
 
-### 3.2 Key Relational Operations
-* **Prisma Nested Queries**: The system avoids mixing `select` and `include` in Prisma queries. To get a doctor profile alongside user metadata:
-  ```javascript
-  const doctor = await prisma.user.findUnique({
-      where: { id: doctorId },
-      select: {
-          id: true,
-          name: true,
-          email: true,
-          avatar: true,
-          doctorProfile: {
-              select: { specialization: true, hospitalName: true }
-          }
-      }
-  });
-  ```
-* **Transaction Safety**: All profile creations are executed inside transaction blocks. If any operation within the block throws an error, the database state is rolled back:
-  ```javascript
-  const user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({ data: userData });
-      await tx.patientProfile.create({ data: { userId: newUser.id } });
-      return newUser;
-  });
-  ```
+### 4.1 Key Tables & Columns
+1. **User**: Stores login credentials (`passwordHash` using BCrypt), verified email index, account status flag (`isActive`), and role enum (`PATIENT`, `DOCTOR`, `ADMIN`).
+2. **PatientProfile**: Holds clinical data. Leverages **PostgreSQL JSONB columns** to store nested objects (like address details and emergency contacts) to avoid slow relational joins.
+3. **DoctorProfile**: Holds scheduling attributes (consultation fee, daily start/end times, duration, availability days array, and custom break periods).
+4. **Appointment**: The key transactional bridge. Coordinates date, start/end time slots, visit type (Online/Offline), reason, fee, and payment tracking variables.
+5. **Prescription**: Stores prescription records. Features a JSON array for medications, listing drug names, dosage instructions, frequency, and duration.
+6. **MedicalRecord**: Stores diagnoses, tests ordered, test results (JSON), and notes.
+7. **Invoice**: Tracks billing records, amount totals, line items, and payment mode (Razorpay, Wallet, Cash).
+8. **ChatMessage**: Persists communications. Includes session identifier, sender/receiver references, and read markers.
 
 ---
 
-## 4. Google OAuth 2.0 Integration Mechanics
+## 5. Google OAuth 2.0 Sign-In Architecture
 
-Authentication supports credentials and Google OAuth sign-in.
+The Google sign-in integration is built on Passport's Google Strategy, allowing users to sign in without manually creating passwords.
 
-### 4.1 Passport configuration (`config/passport.js`)
+```
+  React Client (3000)          Express Backend (5000)         Google Auth Server
+     │                                │                                │
+     │──1. GET /api/auth/google ─────▶│                                │
+     │   (Redirect User)              │──2. Auth Request ─────────────▶│
+     │                                │                                │
+     │                                │◀─3. Display Consent Screen─────│
+     │                                │                                │
+     │◀──4. Redirect w/ Auth Code ────│                                │
+     │                                │──5. POST Auth Code ───────────▶│
+     │                                │◀─6. Send User Profile Data ────│
+     │                                │                                │
+     │                                │──7. Database Operations:       │
+     │                                │     a. Find user by googleId   │
+     │                                │     b. If missing, find email  │
+     │                                │     c. Create/Link profile     │
+     │                                │                                │
+     │◀──8. Redirect to Frontend ─────│                                │
+     │   w/ JWT query parameters      │                                │
+```
 
+### 5.1 Step-by-Step Flow:
+1. **Initiation**: The user clicks the Google Sign-in button. The React client redirects the browser to `GET http://localhost:5000/api/auth/google`.
+2. **Passport Handshake**: Express handles the route and calls `passport.authenticate('google')`, redirecting the browser to Google's consent screen.
+3. **User Approval**: The user signs in and grants permissions. Google redirects the user back to the backend callback URL: `http://localhost:5000/api/auth/google/callback?code=<authorization_code>`.
+4. **Token Exchange**: The backend sends a request to Google's token endpoint to exchange the authorization code for an ID and access token.
+5. **Database Resolution**: Passport extracts the email, name, Google ID, and profile picture:
+   - Queries the database for a user matching the `googleId`.
+   - If not found, checks by `email`. If a match is found, links the Google ID to the existing account.
+   - If no match is found, creates a new `User` with `PATIENT` role and sets up an empty `PatientProfile`.
+6. **Token Issuance & Redirect**: The server generates JWT access and refresh tokens and redirects the user's browser back to the React app:
+   `http://localhost:3000/auth/google/callback?accessToken=<AccessJWT>&refreshToken=<RefreshJWT>&role=PATIENT`.
+7. **Frontend Storage**: The React SPA captures the tokens from the URL parameters, stores them in `localStorage`, updates the Redux store, and redirects the user to the patient dashboard.
+
+---
+
+## 6. Advanced AI RAG Chatbot with LangGraph
+
+To provide accurate answers to patient health inquiries, we built a hybrid RAG service using LangGraph and FastAPI.
+
+```
+                           ┌────────────────────────┐
+                           │      User Query        │
+                           └────────────────────────┘
+                                       │
+                                       ▼
+                         ┌───────────────────────────┐
+                         │   1. Classify Query Node  │
+                         └───────────────────────────┘
+                                       │
+                                       ▼
+                         ┌───────────────────────────┐
+                         │  2. Hybrid Retrieval Node │
+                         │  (BM25 + ChromaDB Cosine) │
+                         └───────────────────────────┘
+                                       │
+                                       ▼
+                         ┌───────────────────────────┐
+                         │   3. RRF Rank Fusion &    │
+                         │      Reranking Node       │
+                         └───────────────────────────┘
+                                       │
+                                       ▼
+                         ┌───────────────────────────┐
+                         │   4. Groq LLM Generator   │
+                         │  (llama-3.1-8b-instant)   │
+                         └───────────────────────────┘
+                                       │
+                                       ▼
+                           ┌────────────────────────┐
+                           │  Formatted Response    │
+                           └────────────────────────┘
+```
+
+### 6.1 Node Functions & State Machine:
+* **Query Classifier Node**: Uses pattern matching on the query string to determine the inquiry category (`schedule`, `doctor_info`, `medical`, or `general`).
+* **Dense Vector Search Node**: Converts the query into a 384-dimensional dense vector using the SentenceTransformers `all-MiniLM-L6-v2` model. It queries ChromaDB to find the top 6 context chunks with the highest cosine similarity.
+* **Sparse Search Node**: Tokenizes the query and evaluates the document collection using the **BM25 Okapi** algorithm. This is crucial for matching exact terms like doctor names, timings, and prescription drugs.
+* **Reciprocal Rank Fusion (RRF) Node**: Combines the rank scores from both retrievers to eliminate search bias:
+  $$RRF\_Score(d) = \frac{1}{60 + Rank_{dense}(d)} + \frac{1}{60 + Rank_{sparse}(d)}$$
+* **Reranking Node**: Re-evaluates the top 5 fused documents, scoring them based on exact token intersections with the user's query.
+* **LLM Generator Node**: Feeds the reranked context and the user query to the Groq API using `llama-3.1-8b-instant` to generate a safe, accurate response.
+
+---
+
+## 7. Real-Time Chat & Socket.IO Architecture
+
+The system features real-time messaging between doctors and patients using WebSockets.
+
+### 7.1 Lifecycle of a Message:
+1. **Connection**: The client initializes a socket connection to `http://localhost:5000` with their JWT access token in the auth header.
+2. **Authentication**: The server decodes the token. On success, it registers the client and joins a private room named `user:${userId}`.
+3. **Session Creation**: When a user opens a chat page, the client calls `getOrCreateSession` to find or create a `ChatSession` record linking the patient and doctor in the database.
+4. **Message Transmission**:
+   - The sender emits `send_message` with `receiverId`, `message`, and `sessionId`.
+   - The backend validates the payload and writes a new `ChatMessage` record to PostgreSQL.
+   - The server routes the message to the sender and receiver's rooms (`user:${senderId}` and `user:${receiverId}`) using `io.to()`.
+   - The recipient's UI updates instantly upon receiving the message.
+5. **Read Receipts**: When a user views an active session, the client emits `mark_read`. The backend updates the read status (`isRead: true`) in the database for all received messages in that session.
+
+---
+
+## 8. Redis Caching & Cache Invalidation Strategy
+
+Redis is used to cache read-heavy endpoints and reduce database load.
+
+### 8.1 Cache Key Design and TTL Configurations:
+* **Profiles**: User profiles are cached under `patient:profile:${userId}` and `doctor:profile:${userId}` (TTL: 300 seconds).
+* **Appointments**: User appointments are cached under `patient:appointments:${userId}:all` and `doctor:appointments:${doctorId}:all` (TTL: 120 seconds).
+* **Search Results**: Cached under query signatures like `doctor-search:specializations` or `doctor-search:query:${queryString}` (TTL: 120 to 3600 seconds).
+* **Available Slots**: Doctor availability slots are cached under `doctor:slots:${doctorId}:${date}` (TTL: 60 seconds).
+
+### 8.2 Cache Invalidation on Mutations:
+When data is updated (e.g. rescheduling an appointment), the cache must be cleared. We use pattern matching to find and delete related keys:
 ```javascript
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL,
-    scope: ['profile', 'email'],
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        const email = profile.emails?.[0]?.value;
-        const name = profile.displayName;
-        const googleId = profile.id;
-        const avatar = profile.photos?.[0]?.value;
-
-        let user = await prisma.user.findFirst({ where: { googleId } });
-        if (!user) {
-            user = await prisma.user.findUnique({ where: { email } });
-            if (user) {
-                user = await prisma.user.update({
-                    where: { id: user.id },
-                    data: { googleId, avatar },
-                });
-            } else {
-                user = await prisma.$transaction(async (tx) => {
-                    const newUser = await tx.user.create({
-                        data: { name, email, googleId, avatar, role: 'PATIENT' },
-                    });
-                    await tx.patientProfile.create({ data: { userId: newUser.id } });
-                    return newUser;
-                });
-            }
-        }
-        return done(null, user);
-    } catch (error) { return done(error, null); }
-}));
+// Clear all cached appointments for the patient
+await deleteCachePattern(`patient:appointments:${req.user.userId}:*`);
+// Clear slots cache for the doctor
+await deleteCachePattern(`doctor:slots:${doctorId}:*`);
+// Clear dashboard stats
+await deleteCachePattern(`patient:dashboard:${req.user.userId}`);
 ```
-
-### 4.2 OAuth Lifecycle & Redirect Sequence
-
-```
-[Google Sign In] (Frontend UI)
-       │
-       ▼
-Redirect to: GET http://localhost:5000/api/auth/google
-       │
-       ▼
-User Authenticates on Google Accounts Page
-       │
-       ▼
-Google Redirects w/ Auth Code to Callback URL:
-GET http://localhost:5000/api/auth/google/callback
-       │
-       ▼
-Backend Exchanges Auth Code for Google Access Tokens
-       │
-       ▼
-Backend creates or updates User profile in database
-       │
-       ▼
-Backend Redirects client to Frontend callback URL:
-http://localhost:3000/auth/google/callback?accessToken=<TOKEN>&refreshToken=<TOKEN>&role=PATIENT
-```
+If the Redis service goes offline, the backend catches the error and queries PostgreSQL directly.
 
 ---
 
-## 5. LangGraph RAG Chatbot Microservice
+## 9. Prescription Templates & Clinical Workflow
 
-The AI assistant uses a LangGraph workflow that combines dense semantic search and sparse keyword retrieval.
-
-### 5.1 System Architecture
+We built a workflow that allows doctors to save prescription templates and apply them during consultations.
 
 ```
-                    ┌──────────────────────┐
-                    │      User Query      │
-                    └──────────────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │  Query Classifier    │
-                    │  Node                │
-                    └──────────────────────┘
-                               │
-                               ▼
-              ┌──────────────────────────────────┐
-              │      Hybrid Retrieval Node       │
-              │                                  │
-              │  ┌──────────────┐ ┌────────────┐ │
-              │  │  ChromaDB    │ │ BM25 Okapi │ │
-              │  │  Dense Match │ │ Sparse    │ │
-              │  └──────────────┘ └────────────┘ │
-              └──────────────────────────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │  Reciprocal Rank     │
-                    │  Fusion (RRF) Node   │
-                    └──────────────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │  Overlap Reranking   │
-                    │  Node                │
-                    └──────────────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │   LLM Generator      │
-                    │ (Llama-3.1-8b-Inst)  │
-                    └──────────────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │  Response JSON Out   │
-                    └──────────────────────┘
+       [Doctor selects Template]
+                   │
+                   ▼
+     [Pre-fills Rx Form on UI]
+                   │
+                   ▼
+       [Doctor clicks Prescribe]
+                   │
+                   ▼
+     POST /api/doctors/prescriptions
+                   │
+                   ▼
+      ┌─────────────────────────┐
+      │     Backend Actions     │
+      ├─────────────────────────┤
+      │ 1. Create Prescription  │
+      │ 2. Create Medical Record│
+      │ 3. Link to Appointment  │
+      └─────────────────────────┘
 ```
 
-### 5.2 Retrieval & Fusion Algorithm
-
-To ensure accurate medical context retrieval, candidate documents are fetched using two search models and fused using RRF.
-
-1. **Dense Vector Search**: The query is converted into an embedding using the `SentenceTransformer` model. ChromaDB performs a cosine similarity lookup to find the top $N$ closest context chunks.
-2. **Sparse Term Search**: The document collections are parsed using token indices. BM25 scores text matches for specific keywords (e.g. drug names, dosages).
-3. **RRF Rank Fusion**: Scores are combined using rank positions:
-   $$RRF\_Score(d) = \frac{1}{60 + Rank_{dense}(d)} + \frac{1}{60 + Rank_{sparse}(d)}$$
-4. **Overlap Reranker**: Results are reranked based on the density of matching query tokens.
-5. **Generation**: The context is injected into the LLM system prompt for answer generation.
-
-### 5.3 LangGraph State Python Implementation
-
-```python
-class AgentState(TypedDict):
-    query: str
-    query_type: str
-    documents: List[Document]
-    reranked_results: List[Document]
-    answer: str
-    sources: List[str]
-    confidence: float
-
-def classify_query(state: AgentState) -> dict:
-    q = state["query"].lower()
-    if any(k in q for k in ["timing", "schedule", "open", "hour", "sunday"]):
-        return {"query_type": "schedule"}
-    if any(k in q for k in ["dr", "doctor", "specialist", "fee", "consult"]):
-        return {"query_type": "doctor_info"}
-    return {"query_type": "medical"}
-
-def retrieve_documents(state: AgentState) -> dict:
-    dense_docs = chroma_vectorstore.similarity_search(state["query"], k=6)
-    sparse_docs = bm25_searcher.search(state["query"], k=6)
-    
-    # RRF rank fusion formula
-    fused_scores = {}
-    for rank, doc in enumerate(dense_docs):
-        fused_scores[doc.page_content] = fused_scores.get(doc.page_content, 0) + (1.0 / (60 + rank))
-    for rank, doc in enumerate(sparse_docs):
-        fused_scores[doc.page_content] = fused_scores.get(doc.page_content, 0) + (1.0 / (60 + rank))
-        
-    sorted_docs = sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)[:5]
-    # Map back to Document objects
-    # ...
-    return {"documents": mapped_docs}
-
-# LangGraph builder configuration
-workflow = StateGraph(AgentState)
-workflow.add_node("classify", classify_query)
-workflow.add_node("retrieve", retrieve_documents)
-workflow.add_node("rerank", rerank_results)
-workflow.add_node("generate", generate_answer)
-
-workflow.set_entry_point("classify")
-workflow.add_edge("classify", "retrieve")
-workflow.add_edge("retrieve", "rerank")
-workflow.add_edge("rerank", "generate")
-workflow.add_edge("generate", END)
-app = workflow.compile()
-```
+### 9.1 Technical Sequence:
+1. **Template Setup**: Doctors save frequently used medication regimens (names, dosages, durations, and notes) as a `PrescriptionTemplate`.
+2. **Prescription Application**: During an appointment, the doctor selects a template. The UI pre-fills the prescription form.
+3. **Submission**: The doctor reviews the data and clicks submit, calling `POST /api/doctors/prescriptions`.
+4. **Database Operations**: The backend handles the request in a database transaction:
+   - Creates a new `Prescription` record.
+   - Automatically creates a corresponding `MedicalRecord` in the patient's history, mapping the diagnoses, notes, and the prescription ID.
+   - Updates the appointment status to `COMPLETED` and links the `prescriptionId` to the appointment.
 
 ---
 
-## 6. Real-Time Chat & Socket.IO Architecture
+## 10. Frontend Axios Client & Auth Slices
 
-Messaging utilizes WebSockets to facilitate real-time chat between users.
-
-### 6.1 Event Lifecycle and Event Types
-
-```
-Client (Patient)             Server (Socket.IO)              Client (Doctor)
-   │                                │                              │
-   │───1. Emit: send_message ──────▶│                              │
-   │   (sessionId, receiverId)      │                              │
-   │                                │───2. Persist Message to DB   │
-   │                                │      (Prisma ChatMessage)    │
-   │                                │                              │
-   │◀──3. Emit: new_message ────────│───4. Emit: new_message ─────▶│
-   │   (To room: user:${senderId})  │      (To room: user:${recId})│
-```
-
-* **Authentication Handshake**: Connection requests must supply the JWT access token in the auth payload.
-* **Message Delivery**: Messages are broadcasted to the sender and receiver's rooms (`user:${userId}`).
-* **Read Receipts**: The client emits `mark_read` on session focus, which updates the messages state to `isRead = true`.
+### 10.1 Axios Response Interceptor (Token Refresh):
+If a request fails with a `401 Unauthorized` status (indicating an expired access token), the Axios interceptor attempts to renew the session:
+1. The client halts the request and retrieves the stored `refreshToken`.
+2. Sends a `POST /api/auth/refresh` request containing the refresh token.
+3. If successful, gets a new access token, updates `localStorage`, and retries the original failed request.
+4. If renewal fails, clears `localStorage` and redirects the user to the login page.
 
 ---
 
-## 7. Redis Cache Layer & Cache Eviction Rules
+## 11. Appointment Scheduling Slot Engine
 
-Redis caches read-heavy queries to optimize performance and reduce database load.
+The scheduling engine computes available time slots dynamically.
 
-### 7.1 Cache Keys & Expiration Schema
-
-```text
-patient:profile:${userId}       -> Stores patient profile (TTL: 300s)
-doctor:profile:${userId}        -> Stores doctor profile (TTL: 300s)
-doctor:slots:${doctorId}:${date}-> Stores doctor availability slots (TTL: 60s)
-patient:appointments:${userId}  -> Stores patient appointments list (TTL: 120s)
-doctor:appointments:${doctorId} -> Stores doctor appointments list (TTL: 120s)
-```
-
-### 7.2 Invalidation Implementation (`config/redis.js`)
-
-```javascript
-const deleteCachePattern = async (pattern) => {
-    try {
-        const keys = await redisClient.keys(pattern);
-        if (keys.length > 0) {
-            await redisClient.del(keys);
-        }
-    } catch (err) {
-        console.error('Redis deleteCachePattern error:', err.message);
-    }
-};
-```
-
----
-
-## 8. Frontend Store & API Client Interceptors
-
-### 8.1 Axios Interceptor & Silent Refresh Config
-
-```javascript
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        const res = await axios.post("http://localhost:5000/api/auth/refresh", { refreshToken });
-        const { accessToken } = res.data.data;
-        localStorage.setItem("accessToken", accessToken);
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
-      }
-    }
-    return Promise.reject(error);
-  }
-);
-```
-
----
-
-## 9. Appointment Booking & Slots Allocation Engine
-
-The scheduling engine computes available time slots for verified and active doctor profiles.
-
-```
-       [Slot Generation Flow]
-                 │
-                 ▼
-     [Parse daily start/end times]
-                 │
-                 ▼
-       [Iterate slot durations]
-                 │
-                 ▼
-      [Filter custom break times]
-                 │
-                 ▼
-     [Check booked appointments]
-                 │
-                 ▼
-   [Add available: true/false properties]
-```
-
-### 9.1 Slot Calculator (`utils/appointmentUtils.js`)
-
-```javascript
-const generateAvailableSlots = (doctor, dateStr, existingAppointments) => {
-    const date = new Date(dateStr);
-    const dayOfWeek = date.getDay();
-
-    if (!doctor.availableDays.includes(dayOfWeek)) return [];
-
-    const slots = [];
-    const [startH, startM] = doctor.dailyStartTime.split(':').map(Number);
-    const [endH, endM] = doctor.dailyEndTime.split(':').map(Number);
-    const duration = doctor.slotDurationMinutes || 30;
-
-    let current = startH * 60 + startM;
-    const end = endH * 60 + endM;
-
-    while (current + duration <= end) {
-        const slotStart = `${String(Math.floor(current / 60)).padStart(2, '0')}:${String(current % 60).padStart(2, '0')}`;
-        const slotEnd = `${String(Math.floor((current + duration) / 60)).padStart(2, '0')}:${String((current + duration) % 60).padStart(2, '0')}`;
-
-        const inBreak = doctor.customBreaks?.some(brk => {
-            const brkStart = brk.startTime.split(':').map(Number);
-            const brkEnd = brk.endTime.split(':').map(Number);
-            return current >= (brkStart[0]*60 + brkStart[1]) && current < (brkEnd[0]*60 + brkEnd[1]);
-        });
-
-        if (!inBreak) {
-            const booked = existingAppointments.filter(apt => {
-                const aptDate = new Date(apt.date).toISOString().split('T')[0];
-                return aptDate === dateStr && apt.startTime === slotStart && !['CANCELLED', 'NO_SHOW'].includes(apt.status);
-            });
-
-            slots.push({
-                startTime: slotStart,
-                endTime: slotEnd,
-                available: booked.length < (doctor.maxPatientsPerSlot || 1),
-                isAvailable: booked.length < (doctor.maxPatientsPerSlot || 1),
-                bookedCount: booked.length,
-                maxSlots: doctor.maxPatientsPerSlot || 1
-            });
-        }
-        current += duration;
-    }
-    return slots;
-};
-```
-
----
-
-## 10. Docker Compose Orchestration Specification
-
-```yaml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: hms-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: hms_db
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    container_name: hms-redis
-    ports:
-      - "6380:6379"
-    restart: unless-stopped
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: hms-backend
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/hms_db?schema=public
-      - REDIS_URL=redis://redis:6379
-      - PORT=5000
-      - FRONTEND_URL=http://localhost:3000
-      - JWT_SECRET=super_secret_jwt_key_hms_2024
-      - JWT_REFRESH_SECRET=super_secret_refresh_key_hms_2024
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - RAG_SERVICE_URL=http://rag_service:8000
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
-    ports:
-      - "5000:5000"
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: hms-frontend
-    environment:
-      - REACT_APP_API_URL=http://localhost:5000/api
-    depends_on:
-      - backend
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-
-  rag_service:
-    build:
-      context: ./rag_service
-      dockerfile: Dockerfile
-    container_name: hms-rag
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-    ports:
-      - "8000:8000"
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-```
+### 11.1 Algorithm Logic:
+1. **Day Check**: Evaluates if the target date's day of the week is in the doctor's `availableDays` array (0 = Sunday, 1 = Monday, etc.).
+2. **Slot Loop**: Iterates from `dailyStartTime` to `dailyEndTime` in increments of `slotDurationMinutes`.
+3. **Break Filter**: Checks if the slot start time falls within any break period in the doctor's `customBreaks` array. If so, skips the slot.
+4. **Booking Check**: Queries PostgreSQL to count active, non-cancelled appointments for the doctor on the target date.
+5. **Availability Determination**: Sets the slot's `available` property to `true` if the count of bookings is less than `maxPatientsPerSlot`.
+6. **Output**: Returns the generated array of slot options to the client.
