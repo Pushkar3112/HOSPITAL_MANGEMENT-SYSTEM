@@ -1,0 +1,735 @@
+GENERAL HEALTH GUIDE & MEDICAL FAQ
+MedCare Hospital — Patient Education Series
+============================================
+Prepared by the General Medicine & Preventive Health Department, MedCare Hospital
+This guide is for educational purposes only. Please consult a doctor for personal medical advice.
+
+==============================================================
+SECTION 1: BLOOD PRESSURE
+==============================================================
+
+WHAT IS BLOOD PRESSURE?
+Blood pressure is the force of blood pushing against the walls of arteries as the heart
+pumps blood. It is measured using two numbers:
+- Systolic pressure (upper number): Pressure when the heart beats
+- Diastolic pressure (lower number): Pressure when the heart rests between beats
+Measured in millimeters of mercury (mmHg), e.g., 120/80 mmHg.
+
+BLOOD PRESSURE CATEGORIES:
+| Category              | Systolic (mmHg)    | Diastolic (mmHg) |
+|-----------------------|--------------------|------------------|
+| Normal                | Less than 120      | Less than 80     |
+| Elevated              | 120–129            | Less than 80     |
+| High (Stage 1 HTN)    | 130–139            | 80–89            |
+| High (Stage 2 HTN)    | 140 or higher      | 90 or higher     |
+| Hypertensive Crisis   | Above 180          | Above 120        |
+| Low (Hypotension)     | Below 90           | Below 60         |
+
+NORMAL BLOOD PRESSURE: Less than 120/80 mmHg
+HIGH BLOOD PRESSURE: Above 140/90 mmHg (requires treatment)
+LOW BLOOD PRESSURE: Below 90/60 mmHg
+
+SYMPTOMS OF HIGH BLOOD PRESSURE (HYPERTENSION):
+- Often called the "silent killer" — most people have NO symptoms
+- When symptoms occur: Severe headache, nosebleeds, visual changes, chest pain, shortness of breath
+- Hypertensive emergency: BP above 180/120 with organ damage symptoms — SEEK EMERGENCY CARE
+
+SYMPTOMS OF LOW BLOOD PRESSURE (HYPOTENSION):
+- Dizziness or lightheadedness (especially on standing up — orthostatic hypotension)
+- Fainting or near-fainting
+- Blurred vision
+- Nausea
+- Fatigue
+- Cold, clammy, pale skin
+- Rapid or shallow breathing
+
+RISK FACTORS FOR HIGH BLOOD PRESSURE:
+- Age (risk increases with age)
+- Obesity
+- Sedentary lifestyle
+- High salt (sodium) diet
+- Excessive alcohol
+- Smoking
+- Family history of hypertension
+- Stress
+- Diabetes or kidney disease
+- Sleep apnea
+
+MANAGING BLOOD PRESSURE:
+- Reduce sodium intake (less than 2,300 mg per day; ideally 1,500 mg)
+- DASH diet (Dietary Approaches to Stop Hypertension): Rich in fruits, vegetables, whole grains, low-fat dairy
+- Exercise regularly (30 minutes of moderate exercise most days)
+- Maintain healthy weight
+- Limit alcohol (men: max 2 drinks/day; women: 1 drink/day)
+- Quit smoking
+- Manage stress
+- Monitor blood pressure at home with a validated device
+- Take prescribed medications regularly — do not stop without doctor's advice
+
+MEDICATIONS FOR HYPERTENSION (commonly used):
+- ACE inhibitors (Ramipril, Enalapril)
+- ARBs (Losartan, Telmisartan)
+- Calcium channel blockers (Amlodipine)
+- Beta-blockers (Atenolol, Metoprolol)
+- Diuretics (Hydrochlorothiazide, Furosemide)
+
+==============================================================
+SECTION 2: CHOLESTEROL
+==============================================================
+
+WHAT IS CHOLESTEROL?
+Cholesterol is a waxy, fat-like substance found in your blood. Your body needs some cholesterol
+to build healthy cells, but too much cholesterol increases your risk of heart disease.
+Cholesterol is carried through the bloodstream by proteins called lipoproteins.
+
+TYPES OF CHOLESTEROL:
+- LDL (Low-Density Lipoprotein): "Bad cholesterol" — builds up in artery walls (plaque)
+- HDL (High-Density Lipoprotein): "Good cholesterol" — helps remove LDL from arteries
+- Triglycerides: Another type of fat in blood — high levels increase heart disease risk
+- Total cholesterol: Sum of all cholesterol types
+
+CHOLESTEROL NORMAL RANGES:
+| Measure          | Optimal             | Borderline High    | High               |
+|------------------|---------------------|--------------------|--------------------|
+| Total Cholesterol| Less than 200 mg/dL | 200–239 mg/dL      | 240 mg/dL or higher|
+| LDL Cholesterol  | Less than 100 mg/dL | 130–159 mg/dL      | 160 mg/dL or higher|
+| HDL Cholesterol  | Above 60 mg/dL (ideal); Below 40 mg/dL = low (risky)  |
+| Triglycerides    | Less than 150 mg/dL | 150–199 mg/dL      | 200 mg/dL or higher|
+
+- NORMAL TOTAL CHOLESTEROL: Less than 200 mg/dL
+- NORMAL LDL: Less than 100 mg/dL (below 70 if heart disease is present)
+- GOOD HDL: Above 60 mg/dL
+
+SYMPTOMS OF HIGH CHOLESTEROL:
+- High cholesterol itself has NO symptoms
+- Detected only by blood test (lipid profile)
+- First sign may be a heart attack or stroke
+
+FOODS TO REDUCE CHOLESTEROL:
+- Increase: Oats, barley, nuts (walnuts, almonds), olive oil, fatty fish (salmon, mackerel),
+  flaxseeds, beans/lentils, avocado, fruits, vegetables
+- Reduce: Red meat, full-fat dairy, butter, ghee in excess, fried foods, processed foods,
+  trans fats (partially hydrogenated oils — found in commercial baked goods, margarine)
+
+MEDICATIONS FOR HIGH CHOLESTEROL:
+- Statins (Atorvastatin, Rosuvastatin, Simvastatin) — most common
+- Ezetimibe — reduces intestinal cholesterol absorption
+- PCSK9 inhibitors (Evolocumab, Alirocumab) — for very high LDL
+
+==============================================================
+SECTION 3: BODY MASS INDEX (BMI)
+==============================================================
+
+WHAT IS BMI?
+Body Mass Index (BMI) is a measure of body fat based on height and weight.
+Formula: BMI = Weight (kg) / Height (m)²
+
+INTERNATIONAL BMI CATEGORIES:
+| Category      | BMI Range        |
+|---------------|------------------|
+| Underweight   | Below 18.5       |
+| Normal Weight | 18.5 to 24.9     |
+| Overweight    | 25.0 to 29.9     |
+| Obese Class 1 | 30.0 to 34.9     |
+| Obese Class 2 | 35.0 to 39.9     |
+| Obese Class 3 | 40.0 and above   |
+
+ASIAN INDIAN BMI CATEGORIES (Lower thresholds apply for Indians):
+- Normal weight: 18.5 to 22.9
+- Overweight: 23.0 to 24.9
+- Obese: 25.0 and above
+
+(Indians carry more abdominal fat at lower BMI than Western populations — greater health risk)
+
+WAIST CIRCUMFERENCE (Better indicator of abdominal obesity):
+- High risk for South Asians:
+  Men: Above 90 cm (35.5 inches)
+  Women: Above 80 cm (31.5 inches)
+
+LIMITATIONS OF BMI:
+- Does not distinguish between muscle and fat mass
+- Athletes may have high BMI but low fat percentage
+- Older adults may have normal BMI but high fat percentage
+- Best used alongside waist circumference and body fat percentage
+
+==============================================================
+SECTION 4: COMMON COLD VS FLU (INFLUENZA)
+==============================================================
+
+COMPARISON OF COLD AND FLU:
+| Feature          | Common Cold                    | Flu (Influenza)               |
+|------------------|--------------------------------|-------------------------------|
+| Onset            | Gradual (1-3 days)             | Sudden (within hours)         |
+| Fever            | Rare or mild                   | High (38-40°C), sudden        |
+| Headache         | Uncommon                       | Prominent                     |
+| Fatigue          | Mild                           | Severe, can be incapacitating |
+| Runny Nose       | Very common, watery to thick   | Sometimes                     |
+| Sneezing         | Very common                    | Common                        |
+| Sore Throat      | Common                         | Sometimes                     |
+| Cough            | Mild to moderate, hacking      | Common, can be severe         |
+| Body Aches       | Mild                           | Severe                        |
+| Complications    | Sinusitis, ear infection       | Pneumonia, hospitalisation    |
+| Duration         | 7-10 days                      | 1-2 weeks                     |
+| Cause            | Rhinovirus (most common)       | Influenza A or B virus        |
+
+TREATMENT:
+Common Cold: Rest, fluids, steam inhalation, saline nasal spray, OTC cold medications
+             (antihistamines, decongestants), throat lozenges. Antibiotics NOT effective.
+Flu: Antiviral medication (Oseltamivir/Tamiflu) — most effective if taken within 48 hours
+     Rest, fluids, paracetamol for fever and pain. Flu vaccine (annual) for prevention.
+
+WHEN TO SEE A DOCTOR (Red Flags):
+- High fever (above 39.5°C) lasting more than 3 days
+- Difficulty breathing or chest pain
+- Severe headache or stiff neck
+- Confusion or altered consciousness
+- Dehydration (not urinating, dry mouth)
+- Symptoms that improve then suddenly worsen
+
+==============================================================
+SECTION 5: HEART ATTACK — RECOGNIZING WARNING SIGNS
+==============================================================
+
+A heart attack (myocardial infarction) occurs when blood flow to part of the heart is blocked,
+usually by a blood clot, causing heart muscle damage. It is a medical emergency.
+
+CLASSIC HEART ATTACK WARNING SIGNS:
+1. CHEST PAIN or PRESSURE: Feeling of tightness, squeezing, heaviness, or pain in the center
+   or left side of the chest, lasting more than a few minutes, or going away and coming back
+2. PAIN RADIATING to ARM: Usually the left arm, but can affect both arms, or between shoulder blades
+3. SHORTNESS OF BREATH: With or without chest discomfort
+4. JAW PAIN: Pain in the jaw, neck, or back
+5. NAUSEA, INDIGESTION, HEARTBURN, or ABDOMINAL PAIN (especially in women)
+6. COLD SWEATS: Breaking out in a cold sweat without exertion
+7. LIGHTHEADEDNESS or SUDDEN DIZZINESS: Feeling faint or dizzy
+8. UNUSUAL FATIGUE: Extreme tiredness, especially in women (may occur days before attack)
+
+ATYPICAL SYMPTOMS (More Common in Women, Elderly, Diabetics):
+- Sudden extreme fatigue
+- Nausea and vomiting
+- Back pain
+- Jaw pain without chest pain
+- Indigestion-like discomfort
+- Note: Diabetics may have "silent heart attacks" — no chest pain due to neuropathy!
+
+IF YOU SUSPECT A HEART ATTACK:
+1. Call emergency services IMMEDIATELY (ambulance: +91-9876543211 at MedCare)
+2. Chew one adult aspirin (325 mg) if not allergic and not contraindicated
+3. DO NOT drive yourself to the hospital
+4. Loosen tight clothing
+5. If the person loses consciousness and stops breathing: start CPR
+
+TIME IS MUSCLE — Every minute of delay damages more heart muscle.
+Golden hour: Treatment within 60 minutes of symptom onset gives best outcomes.
+
+==============================================================
+SECTION 6: STROKE — FAST RECOGNITION
+==============================================================
+
+A stroke occurs when blood supply to part of the brain is cut off (ischemic stroke) or
+when a blood vessel in the brain ruptures (hemorrhagic stroke). It is a medical emergency.
+
+FAST — STROKE RECOGNITION GUIDE:
+F — FACE DROOPING: Ask the person to smile. Is one side of the face drooping or numb?
+A — ARM WEAKNESS: Ask the person to raise both arms. Does one arm drift downward?
+S — SPEECH DIFFICULTY: Is speech slurred, strange, or difficult to understand?
+    Ask them to repeat a simple phrase: "The sky is blue."
+T — TIME TO CALL: If you observe ANY of these signs, call emergency immediately.
+
+BE-FAST (Updated version adds Balance and Eyes):
+B — BALANCE: Sudden loss of balance or coordination
+E — EYES: Sudden trouble seeing in one or both eyes (double vision, blurred vision)
+
+OTHER STROKE SYMPTOMS:
+- Sudden severe headache with no known cause ("worst headache of my life")
+- Sudden numbness or weakness of face, arm, or leg — especially on one side
+- Sudden confusion or trouble understanding speech
+- Sudden difficulty walking, dizziness, or loss of coordination
+
+STROKE FIRST AID:
+- Call emergency IMMEDIATELY — do not wait to see if symptoms improve
+- Do NOT give food or water (risk of choking with swallowing difficulties)
+- Time to treatment is critical — clot-busting drug must be given within 3-4.5 hours
+- Note the time symptoms started (critical for treatment decisions)
+- Keep person calm, loosen tight clothing, lay person on side if unconscious (recovery position)
+
+==============================================================
+SECTION 7: VACCINATION SCHEDULE (INDIA)
+==============================================================
+
+ADULT VACCINATION SCHEDULE:
+
+Annually:
+- Influenza (Flu) vaccine: Every year for adults, especially elderly, diabetics, heart patients,
+  pregnant women, healthcare workers
+
+Every 5 years:
+- Pneumococcal vaccine (PCV23): Adults 65+, immunocompromised individuals
+
+Once in lifetime (or boosters):
+- Tetanus, Diphtheria, Pertussis (Td/Tdap): Every 10 years (after completing primary series)
+- Hepatitis B: 3-dose series if not previously vaccinated
+- Hepatitis A: 2-dose series
+
+For specific groups:
+- HPV vaccine: Girls and women 9-45 years (2-3 doses depending on age at first dose)
+- Meningococcal: College students, pilgrims (Hajj), travelers to endemic areas
+- Varicella (Chickenpox): Adults who haven't had chickenpox or vaccine (2 doses)
+- Shingles (Zoster): Adults 50+ years
+
+Travel vaccines:
+- Typhoid: Every 3 years if at risk, or for travel
+- Yellow Fever: Required for travel to endemic Africa and South America
+- Japanese Encephalitis: Travelers to endemic areas of Asia
+- Cholera: Travelers to high-risk areas
+- Rabies: Pre-exposure for high-risk (veterinarians, animal workers)
+
+CHILDREN'S NATIONAL IMMUNIZATION SCHEDULE (NIS — KEY VACCINES):
+- Birth: BCG, OPV 0, Hepatitis B 1
+- 6 weeks: OPV 1, Pentavalent 1, Rotavirus 1, PCV 1, IPV 1
+- 10 weeks: OPV 2, Pentavalent 2, Rotavirus 2, PCV 2
+- 14 weeks: OPV 3, Pentavalent 3, Rotavirus 3, PCV 3, IPV 2
+- 9 months: Measles-Rubella (MR) 1, JE vaccine (endemic areas)
+- 12 months: Hepatitis A 1, PCV booster
+- 15-18 months: DPT booster, OPV booster, MR 2, Varicella 1
+- 2 years: Hepatitis A 2, Typhoid
+- 5 years: DPT booster
+- 10-16 years: Td booster, HPV (girls 9-14)
+
+Vaccination is available at MedCare Hospital Pediatrics Department.
+
+==============================================================
+SECTION 8: SLEEP RECOMMENDATIONS
+==============================================================
+
+WHY SLEEP MATTERS:
+Sleep is essential for physical repair, immune function, memory consolidation, hormone
+regulation, and mental health. Chronic poor sleep is linked to obesity, diabetes, heart
+disease, depression, and weakened immunity.
+
+RECOMMENDED SLEEP DURATIONS (National Sleep Foundation):
+| Age Group             | Recommended Hours           |
+|-----------------------|-----------------------------|
+| Newborns (0-3 months) | 14–17 hours                 |
+| Infants (4-11 months) | 12–15 hours                 |
+| Toddlers (1-2 years)  | 11–14 hours                 |
+| Preschool (3-5 years) | 10–13 hours                 |
+| School age (6-13)     | 9–11 hours                  |
+| Teenagers (14-17)     | 8–10 hours                  |
+| Adults (18-64)        | 7–9 hours                   |
+| Older Adults (65+)    | 7–8 hours                   |
+
+ADULTS NEED 7-9 HOURS OF SLEEP PER NIGHT.
+
+SIGNS OF SLEEP DEPRIVATION:
+- Difficulty concentrating or making decisions
+- Irritability, mood swings
+- Memory problems
+- Daytime sleepiness despite nighttime sleep
+- Frequent illness (weakened immune system)
+- Weight gain (disrupted hunger hormones)
+
+SLEEP HYGIENE TIPS:
+- Maintain consistent sleep and wake times — even on weekends
+- Keep bedroom cool, dark, and quiet
+- Avoid screens (phones, tablets, TV) at least 1 hour before bedtime
+- Limit caffeine after 2 PM (coffee, tea, cola, energy drinks)
+- Avoid alcohol close to bedtime — it disrupts sleep quality
+- Exercise regularly — but not within 2-3 hours of bedtime
+- Relaxation techniques: Deep breathing, meditation, progressive muscle relaxation
+- Avoid large meals close to bedtime
+- A warm bath or shower 1-2 hours before bed can aid sleep
+
+SLEEP DISORDERS:
+- Insomnia: Difficulty falling or staying asleep (most common; affects 30% adults)
+- Sleep Apnea: Repeated stopping of breathing during sleep; loud snoring; affects 10-30% adults
+  Symptoms: Loud snoring, gasping/choking at night, morning headaches, daytime sleepiness
+  Treatment: CPAP machine, weight loss, positional therapy, surgery
+- Restless Legs Syndrome: Uncomfortable urge to move legs, especially at night
+- Narcolepsy: Excessive daytime sleepiness, sudden muscle weakness (cataplexy)
+
+Consult Dr. Arjun Mehta (Psychiatry) or Dr. James Wilson (General Medicine) for sleep issues.
+
+==============================================================
+SECTION 9: HYDRATION AND WATER INTAKE
+==============================================================
+
+WHY HYDRATION MATTERS:
+Water makes up 60% of adult body weight. It is needed for:
+- Regulating body temperature (sweating)
+- Transporting nutrients and oxygen to cells
+- Flushing toxins through urine
+- Lubricating joints
+- Aiding digestion
+- Supporting kidney function
+
+RECOMMENDED WATER INTAKE:
+- General guideline: 8 glasses (approximately 2 liters) of water per day
+- More accurate: 35 mL per kg of body weight (e.g., 70 kg person = 2.45 liters)
+- Men: ~3.7 liters (13 cups) total water per day
+- Women: ~2.7 liters (9 cups) total water per day
+(Total water includes water from beverages AND food — food accounts for ~20% of intake)
+
+FACTORS REQUIRING MORE WATER:
+- Hot weather or high humidity
+- Physical exercise or labor
+- High fever, vomiting, or diarrhea
+- Pregnancy or breastfeeding
+- High altitude
+
+SIGNS OF DEHYDRATION:
+Mild to Moderate:
+- Dry mouth and thirst
+- Dark yellow urine (well-hydrated urine is pale yellow)
+- Headache
+- Fatigue
+- Dizziness
+
+Severe (Medical Emergency):
+- Very dark urine or no urine
+- Extreme thirst
+- Confusion or disorientation
+- Rapid heartbeat and breathing
+- Sunken eyes
+- Dry, cool skin
+
+URINE COLOR CHART:
+- Pale/clear yellow: Well hydrated
+- Dark yellow: Mildly dehydrated, drink more water
+- Amber/orange: Dehydrated, drink water urgently
+- Brown: Severely dehydrated or possible liver problem — see doctor immediately
+
+TIPS TO DRINK MORE WATER:
+- Keep a water bottle on your desk/bag
+- Drink a glass of water before each meal
+- Set reminders on phone
+- Eat water-rich foods: cucumber, watermelon, oranges, tomatoes, lettuce
+- Replace sugary drinks with water or unsweetened herbal tea
+
+==============================================================
+SECTION 10: MENTAL HEALTH — WHEN TO SEEK HELP
+==============================================================
+
+MENTAL HEALTH IS HEALTH:
+Mental health includes our emotional, psychological, and social well-being. One in 4 people
+will experience a mental health condition in their lifetime. In India, over 150 million people
+need mental health care. Seeking help is a sign of strength, not weakness.
+
+COMMON MENTAL HEALTH CONDITIONS:
+1. Depression:
+   - Persistent sadness, hopelessness, loss of interest in activities for 2+ weeks
+   - Changes in sleep and appetite
+   - Difficulty concentrating
+   - Thoughts of death or suicide
+   - Seek help if you experience 5+ symptoms for 2+ weeks
+
+2. Anxiety Disorders:
+   - Excessive, uncontrollable worry about everyday events
+   - Physical symptoms: Palpitations, sweating, trembling, shortness of breath
+   - Panic attacks (sudden intense fear with physical symptoms)
+   - Avoidance of feared situations
+
+3. Bipolar Disorder:
+   - Alternating episodes of depression (low mood) and mania (elevated, impulsive mood)
+   - During mania: Little need for sleep, racing thoughts, risky behavior, grandiosity
+
+4. OCD (Obsessive-Compulsive Disorder):
+   - Intrusive, unwanted thoughts (obsessions) + repetitive behaviors to reduce anxiety (compulsions)
+   - Handwashing, checking, counting rituals that interfere with daily life
+
+5. PTSD (Post-Traumatic Stress Disorder):
+   - Following trauma: flashbacks, nightmares, hypervigilance, emotional numbness
+   - Can follow accidents, assault, natural disasters, medical emergencies
+
+WHEN TO SEEK MENTAL HEALTH HELP — URGENTLY:
+- Thoughts of suicide or harming yourself: SEEK HELP IMMEDIATELY
+  MedCare Emergency: +91-9876543211
+  National Suicide Prevention Helpline (India): iCall 9152987821
+- Thoughts of harming others
+- Psychosis: Hearing or seeing things that aren't there, believing things that aren't true
+- Severe depression with inability to function
+- Extreme mood swings affecting safety
+
+WHEN TO SEEK MENTAL HEALTH HELP — SOON:
+- Persistent sadness, anxiety, or mood changes for more than 2 weeks
+- Problems at work, school, or in relationships due to emotional difficulties
+- Substance use (alcohol, drugs) to cope with emotions
+- Disordered eating habits
+- Sleep problems persisting for weeks
+
+HOW TO SUPPORT SOMEONE WITH MENTAL HEALTH ISSUES:
+- Listen without judgment
+- Ask: "Are you okay?" and really listen to the answer
+- Encourage professional help
+- Don't minimize their feelings ("Just cheer up!" is NOT helpful)
+- Stay connected and check in regularly
+- Learn about their condition
+
+Contact Dr. Arjun Mehta (Psychiatrist) at MedCare Hospital: +91-9876540008
+
+==============================================================
+SECTION 11: COVID-19 SYMPTOMS AND PRECAUTIONS
+==============================================================
+
+COVID-19 SYMPTOMS:
+Most Common:
+- Fever or chills
+- Cough (dry)
+- Shortness of breath
+- Fatigue
+
+Other Symptoms:
+- Loss of taste (ageusia) or smell (anosmia) — hallmark COVID symptoms
+- Headache
+- Sore throat
+- Runny nose or congestion
+- Muscle or body aches
+- Nausea or vomiting
+- Diarrhea
+
+Serious Symptoms (Seek Emergency Care):
+- Difficulty breathing or shortness of breath
+- Persistent chest pain or pressure
+- Confusion or inability to wake
+- Bluish lips or face (cyanosis)
+- Oxygen saturation below 94%
+
+COVID-19 PRECAUTIONS (Still Relevant):
+- Stay up to date with COVID-19 vaccination and boosters
+- Wear a mask in crowded or poorly ventilated spaces
+- Wash hands frequently with soap and water for at least 20 seconds
+- Use hand sanitizer (60%+ alcohol) when soap not available
+- Cover coughs and sneezes with elbow
+- Maintain distance from sick individuals
+- Stay home when you are sick
+- Ventilate indoor spaces (open windows)
+- Monitor oxygen levels with a pulse oximeter if symptomatic
+
+LONG COVID:
+- Symptoms persist for 4+ weeks after acute infection
+- Fatigue, brain fog (cognitive difficulties), shortness of breath, joint pain
+- Affects ~10-30% of COVID-19 survivors
+- Consult a doctor if symptoms persist after recovery
+
+==============================================================
+SECTION 12: NUTRITION BASICS
+==============================================================
+
+THE SIX ESSENTIAL NUTRIENTS:
+1. Carbohydrates: Primary energy source (whole grains, fruits, vegetables, legumes)
+2. Proteins: Building blocks of cells (lean meat, fish, eggs, dairy, legumes, nuts)
+3. Fats: Energy storage, hormone production, vitamin absorption (healthy fats: olive oil, nuts, avocado)
+4. Vitamins: Regulate body processes (found in fruits, vegetables, whole foods)
+5. Minerals: Bone health, fluid balance, nerve function (dairy, leafy greens, meat, nuts)
+6. Water: Transport, temperature regulation, all metabolic processes
+
+MACRONUTRIENT DISTRIBUTION (ICMR Guidelines for Indians):
+- Carbohydrates: 50-60% of total daily calories
+- Proteins: 10-15% of total daily calories
+- Fats: 20-30% of total daily calories (limit saturated and trans fats)
+
+MICRONUTRIENT DEFICIENCIES COMMON IN INDIA:
+- Iron deficiency anemia: Especially in women and children — eat iron-rich foods (spinach, lentils, meat)
+- Vitamin D deficiency: Very common — 15 minutes sunlight daily; foods: eggs, fatty fish, fortified milk
+- Vitamin B12 deficiency: Especially in vegetarians — eat dairy, eggs; consider supplementation
+- Calcium deficiency: Dairy, ragi, sesame seeds, leafy greens
+- Iodine deficiency: Use iodized salt
+
+THE HEALTHY PLATE (MyPlate Concept):
+- Half the plate: Fruits and vegetables (more vegetables than fruits)
+- Quarter of the plate: Lean proteins (legumes, dal, fish, chicken, paneer, eggs)
+- Quarter of the plate: Whole grains (whole wheat roti, brown rice, oats)
+- Plus: Low-fat dairy (1 cup curd/milk)
+- Healthy fat: Small amount (olive oil, nuts, avocado)
+
+FOODS TO MINIMIZE:
+- Ultra-processed foods (chips, cookies, instant noodles, packaged snacks)
+- Added sugars (soft drinks, sweets, mithai, packaged juices)
+- Trans fats (vanaspati, hydrogenated oils in commercial baked goods)
+- Excess salt (limit to 5g per day — reduce pickles, papad, processed foods)
+- Red and processed meats
+
+==============================================================
+SECTION 13: EXERCISE GUIDELINES BY AGE
+==============================================================
+
+CHILDREN (6-17 YEARS):
+- 60 minutes of moderate-to-vigorous physical activity daily
+- Include: Aerobic activity (most of 60 min), muscle-strengthening (3x/week), bone-strengthening (3x/week)
+- Examples: Running, cycling, swimming, football, skipping, gymnastics
+
+YOUNG ADULTS (18-39 YEARS):
+- 150-300 minutes of moderate-intensity aerobic activity per week
+  OR 75-150 minutes of vigorous-intensity per week
+- Muscle-strengthening: 2+ days per week (weights, yoga, resistance bands)
+- Limit sedentary time
+
+MIDDLE-AGED ADULTS (40-64 YEARS):
+- Same aerobic goals as young adults
+- Add balance exercises (Tai Chi, yoga, single-leg stands) to prevent falls
+- Start strength training if not already doing so
+- Flexibility training: Daily stretching
+
+OLDER ADULTS (65+ YEARS):
+- 150+ minutes moderate aerobic activity per week (as able)
+- Muscle-strengthening: 2+ days per week
+- Balance exercises: 3+ days per week (critical for fall prevention)
+- Adjust intensity based on health conditions and fitness level
+- Even light activity (walking, light housework) is better than nothing
+- Consult doctor before starting new exercise program
+
+EXERCISE FOR SPECIFIC CONDITIONS:
+- Diabetes: Especially beneficial — 150 min/week; check blood sugar before/after
+- Heart disease: Cardiac rehabilitation programs recommended; start slowly
+- Arthritis: Low-impact activities (swimming, cycling, water aerobics); avoid high-impact
+- Osteoporosis: Weight-bearing exercises (walking, jogging); strength training
+- Hypertension: Aerobic exercise most effective; avoid heavy lifting (raises BP acutely)
+- Obesity: All types beneficial; start with walking and progress gradually
+- Pregnancy: 150 min moderate activity per week; avoid lying on back after 1st trimester; avoid contact sports
+
+==============================================================
+SECTION 14: COMMON LAB TESTS AND NORMAL RANGES
+==============================================================
+
+COMPLETE BLOOD COUNT (CBC):
+| Test                | Normal Range (Adults)              |
+|---------------------|------------------------------------|
+| Hemoglobin (Hgb)    | Men: 13.5-17.5 g/dL; Women: 12-15.5 g/dL |
+| White Blood Cells (WBC) | 4,500-11,000 per microliter   |
+| Platelets           | 150,000-400,000 per microliter     |
+| RBC                 | Men: 4.5-5.5 million; Women: 4-5 million per microliter |
+| Hematocrit (HCT)    | Men: 41-53%; Women: 36-46%         |
+| MCV                 | 80-100 femtoliters                 |
+
+BLOOD SUGAR TESTS:
+| Test                  | Normal         | Prediabetes      | Diabetes    |
+|-----------------------|----------------|------------------|-------------|
+| Fasting Blood Glucose | < 100 mg/dL    | 100–125 mg/dL    | ≥ 126 mg/dL |
+| Post-meal (2hr)       | < 140 mg/dL    | 140–199 mg/dL    | ≥ 200 mg/dL |
+| HbA1c                 | < 5.7%         | 5.7–6.4%         | ≥ 6.5%      |
+| Random Glucose        | < 140 mg/dL    |                  | ≥ 200 mg/dL |
+
+KIDNEY FUNCTION:
+| Test                        | Normal Range               |
+|-----------------------------|----------------------------|
+| Blood Urea Nitrogen (BUN)   | 7–20 mg/dL                 |
+| Creatinine (serum)          | Men: 0.7-1.3 mg/dL; Women: 0.5-1.1 mg/dL |
+| eGFR                        | Above 60 mL/min (normal kidney function) |
+| Uric Acid                   | Men: 3.5-7.2 mg/dL; Women: 2.6-6.0 mg/dL |
+| Urine Albumin/Creatinine    | < 30 mg/g (normal); 30-300 (microalbuminuria) |
+
+LIVER FUNCTION TESTS (LFT):
+| Test                        | Normal Range               |
+|-----------------------------|----------------------------|
+| SGOT/AST                    | 10-40 U/L                  |
+| SGPT/ALT                    | 7-56 U/L                   |
+| Alkaline Phosphatase (ALP)  | 44-147 U/L                 |
+| Total Bilirubin             | 0.2-1.2 mg/dL              |
+| Direct Bilirubin            | 0-0.3 mg/dL                |
+| Total Protein               | 6.0-8.3 g/dL               |
+| Albumin                     | 3.5-5.0 g/dL               |
+
+THYROID FUNCTION:
+| Test               | Normal Range                 |
+|--------------------|------------------------------|
+| TSH                | 0.4–4.0 mIU/L               |
+| Free T4 (FT4)      | 0.8–1.8 ng/dL                |
+| Free T3 (FT3)      | 2.3–4.2 pg/mL                |
+
+Note:
+- High TSH = Hypothyroidism (under-active thyroid) — fatigue, weight gain, cold intolerance
+- Low TSH = Hyperthyroidism (over-active thyroid) — weight loss, palpitations, heat intolerance
+
+LIPID PROFILE (CHOLESTEROL):
+| Test               | Optimal            | Borderline       | High / Low Risk  |
+|--------------------|--------------------|------------------|------------------|
+| Total Cholesterol  | < 200 mg/dL        | 200-239 mg/dL    | ≥ 240 mg/dL      |
+| LDL Cholesterol    | < 100 mg/dL        | 130-159 mg/dL    | ≥ 160 mg/dL      |
+| HDL Cholesterol    | ≥ 60 mg/dL (good)  |                  | < 40 mg/dL (low) |
+| Triglycerides      | < 150 mg/dL        | 150-199 mg/dL    | ≥ 200 mg/dL      |
+
+VITAMIN AND MINERAL TESTS:
+| Test               | Normal Range                 |
+|--------------------|------------------------------|
+| Vitamin D (25-OH)  | 30-100 ng/mL (optimal >40)  |
+| Vitamin B12        | 200-900 pg/mL               |
+| Ferritin (iron stores) | Men: 12-300 ng/mL; Women: 12-150 ng/mL |
+| Serum Iron         | 60-170 mcg/dL                |
+| Calcium            | 8.5-10.5 mg/dL               |
+| Potassium          | 3.5-5.0 mEq/L                |
+| Sodium             | 135-145 mEq/L                |
+
+==============================================================
+SECTION 15: EMERGENCY FIRST AID BASICS
+==============================================================
+
+CPR (CARDIOPULMONARY RESUSCITATION):
+When to start: Person is unresponsive, not breathing normally
+1. Call emergency: +91-9876543211
+2. 30 chest compressions: Push hard and fast (5 cm depth) at center of chest, 100-120 per minute
+3. 2 rescue breaths: Tilt head back, lift chin, pinch nose, breathe into mouth until chest rises
+4. Repeat 30:2 cycle until help arrives or AED is available
+5. Hands-only CPR (no rescue breaths) is acceptable if untrained or uncomfortable
+
+CHOKING:
+- For conscious adult: 5 back blows (between shoulder blades) followed by 5 abdominal thrusts
+  (Heimlich maneuver — upward thrust below sternum)
+- If person becomes unconscious: Start CPR
+- For infants: 5 back blows + 5 chest thrusts (NOT abdominal thrusts)
+
+SEVERE BLEEDING:
+- Apply direct, firm pressure with clean cloth
+- Do not remove cloth — add more cloth if soaked through
+- Elevate the injured part above heart level
+- Apply tourniquet (for limb) only if bleeding is life-threatening and uncontrolled
+- Call emergency services
+
+BURNS:
+- Cool the burn with cool (not cold/ice) running water for 10-20 minutes
+- Do not use ice, butter, toothpaste, or oil on burns
+- Do not break blisters
+- Cover with clean, non-fluffy material
+- Seek medical care for burns larger than palm-size, on face/hands/genitals, or deep burns
+
+FRACTURES:
+- Immobilize the injured area — do not try to straighten the bone
+- Apply ice pack (wrapped in cloth) to reduce swelling
+- Elevate if possible
+- Seek emergency care
+- For spinal injury: Do not move the person — call emergency
+
+==============================================================
+SECTION 16: PREVENTIVE HEALTH SCREENINGS (BY AGE)
+==============================================================
+
+AGES 18-39 YEARS:
+- Blood pressure: Every 2 years (annually if elevated)
+- Blood glucose: Every 3 years if risk factors present
+- Cholesterol: Every 5 years (annually if elevated or at risk)
+- Dental checkup: Every 6 months
+- Eye exam: Every 2 years
+- Skin check: Annually (self-examine; doctor if concerns)
+- Women: Pap smear every 3 years starting age 21; breast self-exam monthly; mammogram from 40
+- Men: Testicular self-exam monthly
+
+AGES 40-64 YEARS:
+- Blood pressure: Annually
+- Blood glucose (diabetes): Every 3 years; annually if prediabetes
+- Cholesterol/Lipid profile: Every 3-5 years
+- Colorectal cancer screening: Starting age 45 (colonoscopy or stool tests)
+- Mammogram: Annually for women 40-49 (consider); every 1-2 years for women 50+
+- Pap smear: Every 3 years or every 5 years with HPV test
+- Eye exam: Every 1-2 years
+- Thyroid (TSH): Every 5 years (women more prone to thyroid disease)
+- Bone density (DEXA): Women at menopause; men at 70
+
+AGES 65+:
+- All above screenings
+- Bone density: All women; men with risk factors
+- Vision and hearing: Annually
+- Cognitive assessment: Discuss with doctor
+- Fall risk assessment: Annually
+- Abdominal aortic aneurysm (AAA) ultrasound: Once for male smokers 65-75 years
+
+Preventive health screenings and packages are available at MedCare Hospital.
+Contact: +91-9876543210 | Email: preventivehealth@medcarehospital.com
