@@ -1,135 +1,81 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
-import { Card } from "../components/Card";
-import { adminService } from "../services";
-import { MdDashboard, MdPeople, MdSchedule } from "react-icons/md";
+import { adminAPI } from "../services/api";
+import AppLayout from "../components/AppLayout";
+import { toast } from "react-toastify";
+
+const STATUS_CONFIG = {
+  PENDING: { color: "badge-amber", label: "Pending" },
+  CONFIRMED: { color: "badge-green", label: "Confirmed" },
+  COMPLETED: { color: "badge-teal", label: "Completed" },
+  CANCELLED: { color: "badge-muted", label: "Cancelled" },
+  NO_SHOW: { color: "badge-rose", label: "No Show" },
+};
 
 const AdminAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
-    loadAppointments();
-  }, []);
-
-  const loadAppointments = async () => {
-    try {
-      setLoading(true);
-      const response = await adminService.getAppointments();
-      setAppointments(response.data.data.appointments || []);
-    } catch (error) {
-      console.error("Failed to load appointments:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sidebarItems = [
-    {
-      path: "/admin/dashboard",
-      label: "Dashboard",
-      icon: <MdDashboard />,
-    },
-    {
-      path: "/admin/users",
-      label: "Users",
-      icon: <MdPeople />,
-    },
-    {
-      path: "/admin/appointments",
-      label: "Appointments",
-      icon: <MdSchedule />,
-    },
-  ];
+    adminAPI.getAppointments({ status: statusFilter })
+      .then((res) => setAppointments(res.data.data?.appointments || res.data.data || []))
+      .catch(() => toast.error("Failed to load appointments"))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar items={sidebarItems} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <TopBar title="All Appointments" />
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "30px",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <div className="container">
-            {loading ? (
-              <p>Loading appointments...</p>
-            ) : appointments.length > 0 ? (
-              <Card title="All Appointments">
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "2px solid #ddd" }}>
-                      <th style={{ padding: "12px", textAlign: "left" }}>
-                        Patient
-                      </th>
-                      <th style={{ padding: "12px", textAlign: "left" }}>
-                        Doctor
-                      </th>
-                      <th style={{ padding: "12px", textAlign: "left" }}>
-                        Date & Time
-                      </th>
-                      <th style={{ padding: "12px", textAlign: "left" }}>
-                        Status
-                      </th>
-                      <th style={{ padding: "12px", textAlign: "left" }}>
-                        Fee
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {appointments.map((apt) => (
-                      <tr
-                        key={apt._id}
-                        style={{ borderBottom: "1px solid #eee" }}
-                      >
-                        <td style={{ padding: "12px" }}>
-                          {apt.patientId?.name || "N/A"}
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          {apt.doctorId?.name || "N/A"}
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          {apt.date} {apt.startTime}
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          <span
-                            style={{
-                              padding: "4px 12px",
-                              backgroundColor:
-                                apt.status === "CONFIRMED"
-                                  ? "#efe"
-                                  : apt.status === "PENDING"
-                                  ? "#fffbe6"
-                                  : "#fee",
-                              borderRadius: "4px",
-                              fontSize: "14px",
-                            }}
-                          >
-                            {apt.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          ₹{apt.consultationFee || 0}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Card>
-            ) : (
-              <Card title="Appointments">
-                <p style={{ color: "#666" }}>No appointments found</p>
-              </Card>
-            )}
-          </div>
-        </div>
+    <AppLayout title="All Appointments" subtitle="System-wide appointment management">
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <select className="form-select" style={{ width: "auto", minWidth: 160 }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All Statuses</option>
+          {Object.entries(STATUS_CONFIG).map(([val, { label }]) => (
+            <option key={val} value={val}>{label}</option>
+          ))}
+        </select>
       </div>
-    </div>
+
+      <div className="table-container">
+        <div className="table-header">
+          <h3 className="table-title">📅 Appointments ({appointments.length})</h3>
+        </div>
+        {loading ? (
+          <div className="loading-screen"><div className="spinner" /></div>
+        ) : appointments.length === 0 ? (
+          <div className="empty-state"><div className="empty-icon">📅</div><div className="empty-title">No appointments found</div></div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Date & Time</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Fee</th>
+                </tr>
+              </thead>
+              <tbody>
+                {appointments.map((apt) => (
+                  <tr key={apt.id}>
+                    <td style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 14 }}>{apt.patient?.name}</td>
+                    <td style={{ color: "var(--text-secondary)", fontSize: 14 }}>Dr. {apt.doctor?.name}</td>
+                    <td>
+                      <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{new Date(apt.date).toLocaleDateString("en-IN")}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{apt.startTime}</div>
+                    </td>
+                    <td><span className={`badge ${apt.visitType === "ONLINE" ? "badge-blue" : "badge-purple"}`}>{apt.visitType}</span></td>
+                    <td><span className={`badge ${STATUS_CONFIG[apt.status]?.color || "badge-muted"}`}>{STATUS_CONFIG[apt.status]?.label || apt.status}</span></td>
+                    <td style={{ color: "var(--accent-teal)", fontWeight: 700 }}>{apt.consultationFee ? `₹${apt.consultationFee}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </AppLayout>
   );
 };
 

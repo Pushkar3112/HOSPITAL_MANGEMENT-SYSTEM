@@ -1,921 +1,335 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
-import { Card } from "../components/Card";
-import { doctorSearchService, appointmentService } from "../services";
-import {
-  MdCalendarToday,
-  MdSchedule,
-  MdCheckCircle,
-  MdCreditCard,
-} from "react-icons/md";
+import { searchAPI, appointmentAPI, patientAPI, chatAPI } from "../services/api";
+import AppLayout from "../components/AppLayout";
+import { toast } from "react-toastify";
+
+const SPECIALIZATIONS = [
+  "Cardiologist", "Neurologist", "Orthopedic Surgeon", "Dermatologist",
+  "Pediatrician", "Gynecologist", "Psychiatrist", "General Physician",
+  "Ophthalmologist", "ENT Specialist", "Gastroenterologist", "Endocrinologist",
+];
 
 const AppointmentBooking = () => {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Doctor, 2: DateTime, 3: Payment
+  const [view, setView] = useState("search"); // "search" | "slots" | "myappts"
   const [doctors, setDoctors] = useState([]);
-  const [filters, setFilters] = useState({
-    specialization: "",
-    minFee: "",
-    maxFee: "",
-  });
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [specFilter, setSpecFilter] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [availableSlots, setAvailableSlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [reasonForVisit, setReasonForVisit] = useState("");
-  const [visitType, setVisitType] = useState("ONLINE");
-  const [paymentDetails, setPaymentDetails] = useState(null);
-  const [bookingError, setBookingError] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [slotsDate, setSlotsDate] = useState(new Date().toISOString().split("T")[0]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [booking, setBooking] = useState(null); // { slot, visitType, reason }
+  const [submitting, setSubmitting] = useState(false);
+  const [myAppointments, setMyAppointments] = useState([]);
+  const [aptsLoading, setAptsLoading] = useState(false);
+  const navigate = useNavigate();
+  const [messagingId, setMessagingId] = useState(null);
 
-  // Load doctors on mount and filter changes
-  useEffect(() => {
-    loadDoctors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.specialization, filters.minFee, filters.maxFee]);
-
-  const loadDoctors = async () => {
-    setLoading(true);
+  const handleMessage = async (doctorId) => {
+    setMessagingId(doctorId);
     try {
-      const response = await doctorSearchService.searchDoctors(filters);
-      setDoctors(response.data.data?.doctors || []);
-    } catch (error) {
-      console.error("Failed to load doctors:", error);
-      setBookingError("Failed to load doctors");
+      const res = await chatAPI.startSession({ otherUserId: doctorId });
+      navigate(`/patient/chat?sessionId=${res.data.data.id}`);
+    } catch {
+      toast.error("Failed to start chat session");
     } finally {
-      setLoading(false);
+      setMessagingId(null);
     }
   };
+
+  const searchDoctors = async () => {
+    setLoading(true);
+    try {
+      const res = await searchAPI.searchDoctors({ search, specialization: specFilter, limit: 20 });
+      setDoctors(res.data.data?.doctors || res.data.data || []);
+    } catch { toast.error("Search failed"); }
+    finally { setLoading(false); }
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { searchDoctors(); }, [search, specFilter]);
 
   const loadSlots = async (doctorId, date) => {
     setSlotsLoading(true);
     try {
-      const response = await doctorSearchService.getDoctorSlots(doctorId, date);
-      setAvailableSlots(response.data.data?.slots || []);
-      if (!response.data.data?.slots || response.data.data.slots.length === 0) {
-        setBookingError("No slots available for this date");
-      } else {
-        setBookingError("");
-      }
-    } catch (error) {
-      console.error("Failed to load slots:", error);
-      setBookingError("Failed to load available slots");
-      setAvailableSlots([]);
-    } finally {
-      setSlotsLoading(false);
-    }
+      const res = await doctorAPI_getSlots(doctorId, date);
+      setSlots(res.data.data || []);
+    } catch { toast.error("Failed to load slots"); }
+    finally { setSlotsLoading(false); }
   };
 
-  const handleDoctorSelect = (doctor) => {
+  const doctorAPI_getSlots = (doctorId, date) => searchAPI.getSlots(doctorId, { date });
+
+  const selectDoctor = (doctor) => {
     setSelectedDoctor(doctor);
-    setSelectedDate("");
-    setAvailableSlots([]);
-    setSelectedSlot(null);
+    setView("slots");
+    loadSlots(doctor.id, slotsDate);
   };
 
-  const handleDateChange = (e) => {
-    const date = e.target.value;
-    setSelectedDate(date);
-    if (selectedDoctor && date) {
-      loadSlots(selectedDoctor.id || selectedDoctor._id, date);
-    }
+  const handleDateChange = (d) => {
+    setSlotsDate(d);
+    if (selectedDoctor) loadSlots(selectedDoctor.id, d);
   };
 
-  const handleBookAppointment = async () => {
-    if (!selectedDoctor || !selectedDate || !selectedSlot) {
-      setBookingError("Please select doctor, date, and time slot");
-      return;
-    }
-
-    if (!reasonForVisit.trim()) {
-      setBookingError("Please provide reason for visit");
-      return;
-    }
-
-    setLoading(true);
+  const handleBookSlot = async () => {
+    if (!booking?.slot) return;
+    setSubmitting(true);
     try {
-      const response = await appointmentService.createAppointment({
-        doctorId: selectedDoctor.id || selectedDoctor._id,
-        date: selectedDate,
-        startTime: selectedSlot.startTime,
-        endTime: selectedSlot.endTime,
-        visitType: visitType,
-        reasonForVisit: reasonForVisit,
+      await appointmentAPI.create({
+        doctorId: selectedDoctor.id,
+        date: slotsDate,
+        startTime: booking.slot.startTime,
+        endTime: booking.slot.endTime,
+        visitType: booking.visitType || "OFFLINE",
+        reasonForVisit: booking.reason || "",
       });
-
-      const { appointment, order } = response.data.data;
-      setPaymentDetails({
-        ...order,
-        appointmentId: appointment.id || appointment._id,
-      });
-      setStep(3); // Go to payment step
-      setBookingError("");
-    } catch (error) {
-      console.error("Failed to book appointment:", error);
-      setBookingError(error.response?.data?.message || "Booking failed");
+      toast.success("Appointment booked successfully! 🎉");
+      setBooking(null);
+      loadSlots(selectedDoctor.id, slotsDate);
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Booking failed");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const handlePayment = async () => {
-    if (!paymentDetails || !paymentDetails.id) {
-      setBookingError("Payment details missing. Please try again.");
-      console.error("Missing payment details:", paymentDetails);
-      return;
-    }
-
-    console.log("[handlePayment] Payment Details:", paymentDetails);
-
-    // Real Razorpay payment
-    if (!window.Razorpay) {
-      setBookingError(
-        "Payment gateway not available. Please refresh the page."
-      );
-      return;
-    }
-
-    const razorpayKey = process.env.REACT_APP_RAZORPAY_KEY_ID;
-    console.log("[handlePayment] Using Razorpay Key:", razorpayKey);
-
-    const options = {
-      key: razorpayKey,
-      amount: paymentDetails.amount,
-      currency: "INR",
-      name: "Hospital Management System",
-      description: `Appointment with ${selectedDoctor.user?.name || "Doctor"}`,
-      order_id: paymentDetails.id,
-      handler: async (response) => {
-        try {
-          console.log("[handlePayment] Payment successful:", response);
-
-          // Verify payment with backend
-          const verifyResponse = await appointmentService.verifyPayment({
-            appointmentId: paymentDetails.appointmentId,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-          });
-
-          console.log(
-            "[handlePayment] Verification successful:",
-            verifyResponse
-          );
-          alert("✅ Appointment booked successfully!");
-          setBookingError("");
-
-          // Redirect to dashboard
-          setTimeout(() => {
-            navigate("/patient/dashboard");
-          }, 1500);
-        } catch (error) {
-          console.error("[handlePayment] Verification failed:", error);
-          setBookingError(
-            error.response?.data?.message || "Payment verification failed"
-          );
-        }
-      },
-      modal: {
-        ondismiss: () => {
-          console.log("[handlePayment] Payment modal closed");
-          setBookingError("Payment cancelled");
-        },
-      },
-      prefill: {
-        name: "Patient",
-        email: "patient@example.com",
-      },
-      theme: {
-        color: "#0066cc",
-      },
-    };
-
+  const loadMyAppointments = async () => {
+    setAptsLoading(true);
     try {
-      console.log("[handlePayment] Opening Razorpay checkout...");
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      console.error("[handlePayment] Razorpay initialization error:", error);
-      setBookingError("Failed to open payment gateway: " + error.message);
-    }
+      const res = await patientAPI.getAppointments({ limit: 20 });
+      setMyAppointments(res.data.data || []);
+    } catch { toast.error("Failed to load appointments"); }
+    finally { setAptsLoading(false); }
   };
 
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split("T")[0];
+  const handleCancelAppt = async (id) => {
+    if (!window.confirm("Cancel this appointment?")) return;
+    try {
+      await patientAPI.cancelAppointment(id);
+      toast.success("Appointment cancelled");
+      loadMyAppointments();
+    } catch (e) { toast.error(e.response?.data?.message || "Failed"); }
   };
 
-  const sidebarItems = [
-    {
-      path: "/patient/dashboard",
-      label: "Dashboard",
-      icon: <MdCalendarToday />,
-    },
-    {
-      path: "/patient/appointments",
-      label: "Appointments",
-      icon: <MdSchedule />,
-    },
-    { path: "/patient/profile", label: "My Profile" },
-    { path: "/patient/symptom-checker", label: "Symptom Checker" },
-    { path: "/patient/medical-history", label: "Medical History" },
-    { path: "/patient/prescriptions", label: "Prescriptions" },
-    { path: "/patient/invoices", label: "Invoices" },
-  ];
+  const formatTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hr = parseInt(h); return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`; };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar items={sidebarItems} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <TopBar title="Book Appointment" />
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "30px",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <div className="container">
-            {/* Progress Steps */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "30px",
-                maxWidth: "500px",
-              }}
-            >
-              <div
-                style={{
-                  textAlign: "center",
-                  opacity: step >= 1 ? 1 : 0.5,
-                }}
-              >
-                <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    backgroundColor: step >= 1 ? "#0066cc" : "#ddd",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 8px",
-                    fontWeight: "600",
-                  }}
-                >
-                  {step > 1 ? <MdCheckCircle size={24} /> : "1"}
-                </div>
-                <small>Select Doctor</small>
-              </div>
-              <div
-                style={{
-                  textAlign: "center",
-                  opacity: step >= 2 ? 1 : 0.5,
-                }}
-              >
-                <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    backgroundColor: step >= 2 ? "#0066cc" : "#ddd",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 8px",
-                    fontWeight: "600",
-                  }}
-                >
-                  {step > 2 ? <MdCheckCircle size={24} /> : "2"}
-                </div>
-                <small>Select Time</small>
-              </div>
-              <div
-                style={{
-                  textAlign: "center",
-                  opacity: step >= 3 ? 1 : 0.5,
-                }}
-              >
-                <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    backgroundColor: step >= 3 ? "#0066cc" : "#ddd",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 8px",
-                    fontWeight: "600",
-                  }}
-                >
-                  <MdCreditCard size={20} />
-                </div>
-                <small>Payment</small>
-              </div>
-            </div>
+    <AppLayout title="Appointments" subtitle="Book appointments and manage your schedule">
+      {/* Tab nav */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, borderBottom: "1px solid var(--border-primary)", paddingBottom: 0 }}>
+        {[
+          { id: "search", label: "🔍 Find Doctors" },
+          { id: "myappts", label: "📅 My Appointments" },
+        ].map((tab) => (
+          <button key={tab.id} onClick={() => { setView(tab.id); if (tab.id === "myappts") loadMyAppointments(); }}
+            style={{ padding: "10px 20px", border: "none", background: "none", cursor: "pointer", color: view === tab.id ? "var(--accent-primary)" : "var(--text-secondary)", borderBottom: `2px solid ${view === tab.id ? "var(--accent-primary)" : "transparent"}`, fontWeight: 600, fontSize: 14, marginBottom: -1, transition: "all 0.15s" }}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-            {bookingError && (
-              <div
-                style={{
-                  padding: "15px",
-                  backgroundColor: "#fee",
-                  color: "#c33",
-                  borderRadius: "6px",
-                  marginBottom: "20px",
-                  border: "1px solid #fcc",
-                }}
-              >
-                {bookingError}
+      {/* Doctor Search */}
+      {(view === "search" || view === "slots") && view !== "myappts" && (
+        <>
+          {view === "search" && (
+            <>
+              <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+                <div className="search-bar" style={{ flex: 1, minWidth: 200 }}>
+                  <span style={{ color: "var(--text-muted)" }}>🔍</span>
+                  <input placeholder="Search doctors by name or hospital..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <select className="form-select" style={{ width: "auto", minWidth: 180 }} value={specFilter} onChange={(e) => setSpecFilter(e.target.value)}>
+                  <option value="">All Specializations</option>
+                  {SPECIALIZATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
               </div>
-            )}
 
-            {/* Step 1: Doctor Selection */}
-            {step === 1 && (
-              <>
-                <Card title="Step 1: Search and Select Doctor">
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(250px, 1fr))",
-                      gap: "15px",
-                      marginBottom: "20px",
-                    }}
-                  >
-                    <input
-                      type="text"
-                      placeholder="Specialization (e.g., Cardiology)"
-                      value={filters.specialization}
-                      onChange={(e) =>
-                        setFilters({
-                          ...filters,
-                          specialization: e.target.value,
-                        })
-                      }
-                      style={{
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                      }}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Min Fee (₹)"
-                      value={filters.minFee}
-                      onChange={(e) =>
-                        setFilters({ ...filters, minFee: e.target.value })
-                      }
-                      style={{
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                      }}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max Fee (₹)"
-                      value={filters.maxFee}
-                      onChange={(e) =>
-                        setFilters({ ...filters, maxFee: e.target.value })
-                      }
-                      style={{
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                      }}
-                    />
-                  </div>
-
-                  <label
-                    style={{
-                      display: "block",
-                      fontWeight: "600",
-                      marginBottom: "15px",
-                    }}
-                  >
-                    Available Doctors:
-                  </label>
-                  {loading ? (
-                    <p style={{ color: "#666" }}>Loading doctors...</p>
-                  ) : doctors.length > 0 ? (
-                    <div style={{ display: "grid", gap: "10px" }}>
-                      {doctors.map((doctor) => (
-                        <div
-                          key={doctor.id || doctor._id}
-                          onClick={() => handleDoctorSelect(doctor)}
-                          style={{
-                            padding: "15px",
-                            border:
-                              selectedDoctor?.id === (doctor.id || doctor._id)
-                                ? "2px solid #0066cc"
-                                : "1px solid #ddd",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            backgroundColor:
-                              selectedDoctor?.id === (doctor.id || doctor._id)
-                                ? "#f0f7ff"
-                                : "#f9f9f9",
-                            transition: "all 0.3s",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "start",
-                            }}
-                          >
-                            <div>
-                              <h4 style={{ margin: "0 0 8px 0" }}>
-                                {doctor.user?.name || "Doctor"}
-                              </h4>
-                              <p
-                                style={{
-                                  margin: "0 0 5px 0",
-                                  color: "#666",
-                                  fontSize: "14px",
-                                }}
-                              >
-                                {doctor.specialization}
-                              </p>
-                              <p
-                                style={{
-                                  margin: "0",
-                                  color: "#999",
-                                  fontSize: "13px",
-                                }}
-                              >
-                                {doctor.hospitalName} •{" "}
-                                {doctor.yearsOfExperience} yrs exp
-                              </p>
-                            </div>
-                            <div
-                              style={{
-                                textAlign: "right",
-                                fontSize: "18px",
-                                fontWeight: "bold",
-                                color: "#0066cc",
-                              }}
-                            >
-                              ₹{doctor.consultationFee}
-                            </div>
+              {loading ? (
+                <div className="loading-screen"><div className="spinner" /></div>
+              ) : doctors.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">👨‍⚕️</div>
+                  <div className="empty-title">No doctors found</div>
+                  <div className="empty-subtitle">Try a different search term or specialization</div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+                  {doctors.map((doc) => (
+                    <div key={doc.id} className="doctor-card" onClick={() => selectDoctor(doc)}>
+                      <div className="doctor-card-header">
+                        <div className="user-avatar" style={{ width: 52, height: 52, fontSize: 20 }}>
+                          {doc.avatar ? <img src={doc.avatar} alt={doc.name} /> : doc.name?.[0]}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text-primary)" }}>Dr. {doc.name}</div>
+                          <div className="doctor-specialty-badge">{doc.doctorProfile?.specialization}</div>
+                          <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 4 }}>
+                            <span className="doctor-fee">₹{doc.doctorProfile?.consultationFee}</span>
+                            {doc.doctorProfile?.rating > 0 && (
+                              <span className="doctor-rating">⭐ {doc.doctorProfile.rating.toFixed(1)}</span>
+                            )}
                           </div>
                         </div>
-                      ))}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", gap: 12 }}>
+                        <span>🏥 {doc.doctorProfile?.hospitalName}</span>
+                        <span>⏱️ {doc.doctorProfile?.yearsOfExperience}y exp</span>
+                      </div>
+                      <button className="btn btn-primary w-full" style={{ marginTop: 14 }} onClick={(e) => { e.stopPropagation(); selectDoctor(doc); }}>
+                        📅 Book Appointment
+                      </button>
                     </div>
-                  ) : (
-                    <p style={{ color: "#999" }}>
-                      No doctors found. Try adjusting your filters.
-                    </p>
-                  )}
-                </Card>
-
-                <div style={{ textAlign: "right", marginTop: "20px" }}>
-                  <button
-                    onClick={() => setStep(2)}
-                    disabled={!selectedDoctor}
-                    style={{
-                      padding: "12px 30px",
-                      backgroundColor: selectedDoctor ? "#0066cc" : "#ccc",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: selectedDoctor ? "pointer" : "not-allowed",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                    }}
-                  >
-                    Next: Select Date & Time
-                  </button>
+                  ))}
                 </div>
-              </>
-            )}
+              )}
+            </>
+          )}
 
-            {/* Step 2: Date and Time Selection */}
-            {step === 2 && selectedDoctor && (
-              <>
-                <Card
-                  title={`Step 2: Book with Dr. ${selectedDoctor.user?.name || "Doctor"
-                    }`}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(300px, 1fr))",
-                      gap: "20px",
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontWeight: "600",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        Select Date
-                      </label>
-                      <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={handleDateChange}
-                        min={getTomorrowDate()}
-                        style={{
-                          width: "100%",
-                          padding: "10px",
-                          border: "1px solid #ddd",
-                          borderRadius: "6px",
-                          fontSize: "16px",
-                        }}
-                      />
-                    </div>
+          {view === "slots" && selectedDoctor && (
+            <>
+              <button className="btn btn-ghost btn-sm" onClick={() => setView("search")} style={{ marginBottom: 16 }}>← Back to doctors</button>
 
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontWeight: "600",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        Visit Type
-                      </label>
-                      <select
-                        value={visitType}
-                        onChange={(e) => setVisitType(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "10px",
-                          border: "1px solid #ddd",
-                          borderRadius: "6px",
-                          fontSize: "16px",
-                        }}
-                      >
-                        <option value="ONLINE">Online</option>
-                        <option value="OFFLINE">In-Person</option>
-                      </select>
+              <div className="glass-card-elevated" style={{ padding: 20, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div className="user-avatar" style={{ width: 56, height: 56, fontSize: 22 }}>
+                    {selectedDoctor.avatar ? <img src={selectedDoctor.avatar} alt="" /> : selectedDoctor.name?.[0]}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)" }}>Dr. {selectedDoctor.name}</div>
+                    <div style={{ fontSize: 14, color: "var(--accent-primary)", fontWeight: 600 }}>{selectedDoctor.doctorProfile?.specialization}</div>
+                    <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Fee: ₹{selectedDoctor.doctorProfile?.consultationFee} · {selectedDoctor.doctorProfile?.hospitalName}</div>
+                  </div>
+                  <div style={{ marginLeft: "auto" }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">Select Date</label>
+                      <input type="date" className="form-input" value={slotsDate} onChange={(e) => handleDateChange(e.target.value)} min={new Date().toISOString().split("T")[0]} style={{ width: "auto" }} />
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div style={{ marginTop: "20px" }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontWeight: "600",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Reason for Visit
-                    </label>
-                    <textarea
-                      value={reasonForVisit}
-                      onChange={(e) => setReasonForVisit(e.target.value)}
-                      placeholder="Describe your symptoms or reason for consultation"
-                      style={{
-                        width: "100%",
-                        minHeight: "80px",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                        fontFamily: "inherit",
-                        fontSize: "14px",
-                        resize: "vertical",
-                      }}
-                    />
-                  </div>
-
-                  {selectedDate && (
-                    <div style={{ marginTop: "20px" }}>
-                      <label
-                        style={{
-                          display: "block",
-                          fontWeight: "600",
-                          marginBottom: "15px",
-                        }}
-                      >
-                        Available Time Slots
-                      </label>
-                      {slotsLoading ? (
-                        <p style={{ color: "#666" }}>
-                          Loading available slots...
-                        </p>
-                      ) : availableSlots.length > 0 ? (
-                        <div
+              {slotsLoading ? (
+                <div className="loading-screen"><div className="spinner" /></div>
+              ) : slots.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📅</div>
+                  <div className="empty-title">No available slots</div>
+                  <div className="empty-subtitle">Try a different date</div>
+                </div>
+              ) : (
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "var(--text-primary)" }}>
+                    Available Slots for {new Date(slotsDate).toLocaleDateString("en-IN", { weekday: "long", month: "long", day: "numeric" })}
+                  </h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
+                    {slots.map((slot, i) => {
+                      const isSelected = booking?.slot?.startTime === slot.startTime;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setBooking({ slot, visitType: "OFFLINE", reason: "" })}
+                          disabled={!slot.available}
                           style={{
-                            display: "grid",
-                            gridTemplateColumns:
-                              "repeat(auto-fit, minmax(120px, 1fr))",
-                            gap: "10px",
+                            padding: "12px 10px", borderRadius: "var(--radius-md)", border: isSelected ? "2px solid var(--accent-primary)" : "1px solid var(--border-primary)",
+                            background: isSelected ? "rgba(79,142,247,0.12)" : slot.available ? "var(--bg-card)" : "rgba(255,255,255,0.02)",
+                            color: !slot.available ? "var(--text-muted)" : isSelected ? "var(--accent-primary)" : "var(--text-primary)",
+                            cursor: slot.available ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, textAlign: "center", transition: "all 0.15s",
                           }}
                         >
-                          {availableSlots.map((slot, index) => (
-                            <button
-                              key={index}
-                              onClick={() => setSelectedSlot(slot)}
-                              style={{
-                                padding: "12px 10px",
-                                border:
-                                  selectedSlot?.startTime === slot.startTime
-                                    ? "2px solid #0066cc"
-                                    : "1px solid #ddd",
-                                borderRadius: "6px",
-                                backgroundColor:
-                                  selectedSlot?.startTime === slot.startTime
-                                    ? "#f0f7ff"
-                                    : "white",
-                                cursor: "pointer",
-                                fontWeight:
-                                  selectedSlot?.startTime === slot.startTime
-                                    ? "600"
-                                    : "500",
-                                color:
-                                  selectedSlot?.startTime === slot.startTime
-                                    ? "#0066cc"
-                                    : "#333",
-                                transition: "all 0.3s",
-                              }}
-                            >
-                              <div
-                                style={{ fontSize: "14px", fontWeight: "600" }}
-                              >
-                                {slot.startTime}
-                              </div>
-                              <div
-                                style={{ fontSize: "12px", marginTop: "4px" }}
-                              >
-                                {slot.endTime}
-                              </div>
+                          {formatTime(slot.startTime)}
+                          {!slot.available && <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 400, marginTop: 2 }}>Booked</div>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {booking?.slot && (
+                    <div className="glass-card-elevated" style={{ padding: 20, marginTop: 20 }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "var(--text-primary)" }}>✅ Confirm Booking</h3>
+                      <div style={{ marginBottom: 12, padding: "10px 14px", background: "rgba(79,142,247,0.08)", borderRadius: "var(--radius-md)", fontSize: 13, color: "var(--text-secondary)" }}>
+                        🕐 {formatTime(booking.slot.startTime)} — {formatTime(booking.slot.endTime)} · {new Date(slotsDate).toLocaleDateString("en-IN")} · Dr. {selectedDoctor.name}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Visit Type</label>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          {["OFFLINE", "ONLINE"].map((vt) => (
+                            <button key={vt} type="button" onClick={() => setBooking({ ...booking, visitType: vt })}
+                              style={{ flex: 1, padding: "10px", borderRadius: "var(--radius-md)", border: booking.visitType === vt ? "2px solid var(--accent-primary)" : "1px solid var(--border-primary)", background: booking.visitType === vt ? "rgba(79,142,247,0.1)" : "var(--bg-card)", color: booking.visitType === vt ? "var(--accent-primary)" : "var(--text-secondary)", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                              {vt === "OFFLINE" ? "🏥 In-Person" : "💻 Online"}
                             </button>
                           ))}
                         </div>
-                      ) : (
-                        <p style={{ color: "#999" }}>
-                          No slots available for this date
-                        </p>
-                      )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Reason for Visit (optional)</label>
+                        <textarea className="form-textarea" rows={2} placeholder="Describe your symptoms or reason..." value={booking.reason || ""} onChange={(e) => setBooking({ ...booking, reason: e.target.value })} />
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button className="btn btn-secondary" onClick={() => setBooking(null)}>Cancel</button>
+                        <button className="btn btn-primary" onClick={handleBookSlot} disabled={submitting}>
+                          {submitting ? <><span className="spinner spinner-sm" /> Booking...</> : "📅 Confirm Booking"}
+                        </button>
+                      </div>
                     </div>
                   )}
-                </Card>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    marginTop: "20px",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <button
-                    onClick={() => setStep(1)}
-                    style={{
-                      padding: "12px 30px",
-                      backgroundColor: "#ddd",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                    }}
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handleBookAppointment}
-                    disabled={!selectedSlot || !reasonForVisit.trim()}
-                    style={{
-                      padding: "12px 30px",
-                      backgroundColor:
-                        selectedSlot && reasonForVisit.trim()
-                          ? "#0066cc"
-                          : "#ccc",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor:
-                        selectedSlot && reasonForVisit.trim()
-                          ? "pointer"
-                          : "not-allowed",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                    }}
-                  >
-                    Next: Payment
-                  </button>
                 </div>
-              </>
-            )}
+              )}
+            </>
+          )}
+        </>
+      )}
 
-            {/* Step 3: Payment */}
-            {step === 3 && paymentDetails && (
-              <>
-                <Card title="Step 3: Confirm & Pay">
-                  <div
-                    style={{
-                      backgroundColor: "#f9f9f9",
-                      padding: "20px",
-                      borderRadius: "8px",
-                      marginBottom: "20px",
-                    }}
-                  >
-                    <h3 style={{ marginTop: "0" }}>Appointment Summary</h3>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: "20px",
-                      }}
-                    >
-                      <div>
-                        <p
-                          style={{
-                            color: "#666",
-                            fontSize: "14px",
-                            margin: "0 0 5px 0",
-                          }}
-                        >
-                          Doctor
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            margin: "0",
-                          }}
-                        >
-                          {selectedDoctor?.user?.name || "Doctor"}
-                        </p>
-                      </div>
-                      <div>
-                        <p
-                          style={{
-                            color: "#666",
-                            fontSize: "14px",
-                            margin: "0 0 5px 0",
-                          }}
-                        >
-                          Specialization
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            margin: "0",
-                          }}
-                        >
-                          {selectedDoctor?.specialization}
-                        </p>
-                      </div>
-                      <div>
-                        <p
-                          style={{
-                            color: "#666",
-                            fontSize: "14px",
-                            margin: "0 0 5px 0",
-                          }}
-                        >
-                          Date & Time
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            margin: "0",
-                          }}
-                        >
-                          {selectedDate} {selectedSlot?.startTime} -{" "}
-                          {selectedSlot?.endTime}
-                        </p>
-                      </div>
-                      <div>
-                        <p
-                          style={{
-                            color: "#666",
-                            fontSize: "14px",
-                            margin: "0 0 5px 0",
-                          }}
-                        >
-                          Visit Type
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            margin: "0",
-                          }}
-                        >
-                          {visitType}
-                        </p>
-                      </div>
-                      <div style={{ gridColumn: "1 / -1" }}>
-                        <p
-                          style={{
-                            color: "#666",
-                            fontSize: "14px",
-                            margin: "0 0 5px 0",
-                          }}
-                        >
-                          Reason
-                        </p>
-                        <p style={{ fontSize: "16px", margin: "0" }}>
-                          {reasonForVisit}
-                        </p>
-                      </div>
+      {/* My Appointments */}
+      {view === "myappts" && (
+        <div>
+          {aptsLoading ? (
+            <div className="loading-screen"><div className="spinner" /></div>
+          ) : myAppointments.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📅</div>
+              <div className="empty-title">No appointments yet</div>
+              <div className="empty-subtitle">Book your first appointment above</div>
+              <button className="btn btn-primary btn-sm" style={{ marginTop: 12 }} onClick={() => setView("search")}>Find Doctors</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {myAppointments.map((apt) => (
+                <div key={apt.id} className="appointment-card">
+                  <div className="appointment-date-box">
+                    <div className="apt-day">{new Date(apt.date).getDate()}</div>
+                    <div className="apt-month">{new Date(apt.date).toLocaleString("default", { month: "short" })}</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 14 }}>Dr. {apt.doctor?.name}</div>
+                    {apt.doctor?.doctorProfile && <div style={{ fontSize: 12, color: "var(--accent-primary)", fontWeight: 600 }}>{apt.doctor.doctorProfile.specialization}</div>}
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>🕐 {formatTime(apt.startTime)} · {apt.visitType}</div>
+                    {apt.reasonForVisit && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{apt.reasonForVisit}</div>}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                    <span className={`badge badge-${apt.status === "CONFIRMED" ? "green" : apt.status === "PENDING" ? "amber" : apt.status === "COMPLETED" ? "teal" : "muted"}`}>
+                      {apt.status}
+                    </span>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => handleMessage(apt.doctorId)} disabled={messagingId === apt.doctorId}>
+                        {messagingId === apt.doctorId ? "..." : "💬 Chat"}
+                      </button>
+                      {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+                        <button className="btn btn-danger btn-sm" onClick={() => handleCancelAppt(apt.id)}>Cancel</button>
+                      )}
                     </div>
                   </div>
-
-                  <div
-                    style={{
-                      padding: "20px",
-                      backgroundColor: "#f0f7ff",
-                      borderRadius: "8px",
-                      border: "1px solid #0066cc",
-                      marginBottom: "20px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontSize: "18px", fontWeight: "600" }}>
-                        Total Amount:
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "28px",
-                          fontWeight: "bold",
-                          color: "#0066cc",
-                        }}
-                      >
-                        ₹{paymentDetails.amount / 100}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    marginTop: "20px",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <button
-                    onClick={() => setStep(2)}
-                    style={{
-                      padding: "12px 30px",
-                      backgroundColor: "#ddd",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                    }}
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handlePayment}
-                    style={{
-                      padding: "12px 30px",
-                      backgroundColor: "#06a77d",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <MdCreditCard /> Pay Now
-                  </button>
                 </div>
-              </>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Razorpay Script */}
-      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    </div>
+      )}
+    </AppLayout>
   );
 };
 

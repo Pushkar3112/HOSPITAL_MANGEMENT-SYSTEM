@@ -1,97 +1,99 @@
-import React, { useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
-import { Card } from "../components/Card";
-import usePatient from "../hooks/usePatient";
-import { MdCalendarToday, MdSchedule } from "react-icons/md";
-import { formatDate } from "../utils/dateUtils";
+import React, { useEffect, useState } from "react";
+import { patientAPI } from "../services/api";
+import AppLayout from "../components/AppLayout";
 
 const Prescriptions = () => {
-    const patient = usePatient();
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        patient.loadPrescriptions();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  useEffect(() => {
+    patientAPI.getPrescriptions()
+      .then((res) => setPrescriptions(res.data.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-    const sidebarItems = [
-        { path: "/patient/dashboard", label: "Dashboard", icon: <MdCalendarToday /> },
-        { path: "/patient/appointments", label: "Appointments", icon: <MdSchedule /> },
-        { path: "/patient/profile", label: "My Profile" },
-        { path: "/patient/symptom-checker", label: "Symptom Checker" },
-        { path: "/patient/medical-history", label: "Medical History" },
-        { path: "/patient/prescriptions", label: "Prescriptions" },
-        { path: "/patient/invoices", label: "Invoices" },
-    ];
+  const formatDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
-    return (
-        <div style={{ display: "flex", height: "100vh" }}>
-            <Sidebar items={sidebarItems} />
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <TopBar title="My Prescriptions" />
-                <div style={{ flex: 1, overflow: "auto", padding: "30px", backgroundColor: "#f5f5f5" }}>
-                    <div className="container">
-                        {patient.isLoading ? (
-                            <p>Loading prescriptions...</p>
-                        ) : patient.prescriptions && patient.prescriptions.length > 0 ? (
-                            <div style={{ display: "grid", gap: "20px" }}>
-                                {patient.prescriptions.map((rx, index) => (
-                                    <Card key={rx.id || index} title={`Prescription ${index + 1}`}>
-                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "15px" }}>
-                                            <div>
-                                                <label style={{ color: "#666", fontSize: "14px" }}>Prescribed By</label>
-                                                <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                                                    {rx.doctor?.name || "N/A"}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <label style={{ color: "#666", fontSize: "14px" }}>Date</label>
-                                                <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                                                    {rx.createdAt ? formatDate(new Date(rx.createdAt)) : "N/A"}
-                                                </p>
-                                            </div>
-                                            <div style={{ gridColumn: "1 / -1" }}>
-                                                <label style={{ color: "#666", fontSize: "14px" }}>Medications</label>
-                                                <div style={{ marginTop: "8px" }}>
-                                                    {rx.medications?.map((med, i) => (
-                                                        <div key={i} style={{ padding: "10px", marginBottom: "8px", border: "1px solid #e0e0e0", borderRadius: "6px", backgroundColor: "#fafafa" }}>
-                                                            <strong>{med.name}</strong> — {med.dosage}
-                                                            <br />
-                                                            <span style={{ color: "#666", fontSize: "14px" }}>
-                                                                {med.frequency} for {med.duration} {med.notes ? `(${med.notes})` : ""}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            {rx.lifestyleAdvice && (
-                                                <div style={{ gridColumn: "1 / -1" }}>
-                                                    <label style={{ color: "#666", fontSize: "14px" }}>Lifestyle Advice</label>
-                                                    <p style={{ fontSize: "16px", fontWeight: "600" }}>{rx.lifestyleAdvice}</p>
-                                                </div>
-                                            )}
-                                            {rx.followUpDate && (
-                                                <div>
-                                                    <label style={{ color: "#666", fontSize: "14px" }}>Follow-up Date</label>
-                                                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                                                        {formatDate(new Date(rx.followUpDate))}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </Card>
-                                ))}
-                            </div>
-                        ) : (
-                            <Card title="Prescriptions">
-                                <p style={{ color: "#666" }}>No prescriptions found</p>
-                            </Card>
-                        )}
-                    </div>
-                </div>
-            </div>
+  return (
+    <AppLayout title="Prescriptions" subtitle="All prescriptions from your doctors">
+      {loading ? (
+        <div className="loading-screen"><div className="spinner" /></div>
+      ) : prescriptions.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">💊</div>
+          <div className="empty-title">No prescriptions yet</div>
+          <div className="empty-subtitle">Prescriptions sent by your doctors will appear here</div>
         </div>
-    );
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {prescriptions.map((rx) => (
+            <div key={rx.id} className="rx-card">
+              <div className="rx-header">
+                <div>
+                  <div className="rx-title">
+                    {rx.isFromTemplate ? "📋 Template Prescription" : "💊 Prescription"}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                    By Dr. {rx.doctor?.name} · {formatDate(rx.createdAt)}
+                  </div>
+                  {rx.diagnosis && (
+                    <div style={{ fontSize: 13, color: "var(--accent-teal)", marginTop: 6, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                      🩺 {rx.diagnosis}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  {rx.followUpDate && (
+                    <div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Follow-up</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--accent-amber)" }}>
+                        📅 {formatDate(rx.followUpDate)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+                  💊 Medications
+                </div>
+                {rx.medications?.map((med, i) => (
+                  <div key={i} className="medication-item">
+                    <div className="medication-dot" />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <span className="medication-name">{med.name}</span>
+                        <span className="badge badge-blue">{med.dosage}</span>
+                      </div>
+                      <div className="medication-details">
+                        {[med.frequency, med.duration, med.notes].filter(Boolean).join(" · ")}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {rx.lifestyleAdvice && (
+                <div style={{ padding: "10px 14px", background: "rgba(0,212,170,0.06)", borderRadius: "var(--radius-md)", border: "1px solid rgba(0,212,170,0.15)", marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: "var(--accent-teal)", fontWeight: 700, marginBottom: 4 }}>🌿 LIFESTYLE ADVICE</div>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>{rx.lifestyleAdvice}</div>
+                </div>
+              )}
+
+              {rx.notes && (
+                <div style={{ padding: "10px 14px", background: "rgba(79,142,247,0.05)", borderRadius: "var(--radius-md)", border: "1px solid rgba(79,142,247,0.1)" }}>
+                  <div style={{ fontSize: 11, color: "var(--accent-primary)", fontWeight: 700, marginBottom: 4 }}>📝 DOCTOR'S NOTES</div>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{rx.notes}</div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </AppLayout>
+  );
 };
 
 export default Prescriptions;

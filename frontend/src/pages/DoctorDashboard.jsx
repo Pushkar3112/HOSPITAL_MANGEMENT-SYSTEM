@@ -1,154 +1,136 @@
-import React, { useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
-import { Card, StatCard } from "../components/Card";
-import { SkeletonLoader } from "../components/Loading";
-import useDoctor from "../hooks/useDoctor";
-import { MdCalendarToday, MdSchedule, MdCheckCircle } from "react-icons/md";
-import { formatDateTime } from "../utils/dateUtils";
+import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { doctorAPI } from "../services/api";
+import AppLayout from "../components/AppLayout";
+import { Link } from "react-router-dom";
 
 const DoctorDashboard = () => {
-  const doctor = useDoctor();
+  const { user } = useSelector((s) => s.auth);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    doctor.loadAppointments({ status: "PENDING,CONFIRMED" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const today = new Date().toISOString().split("T")[0];
+    doctorAPI.getAppointments({ date: today })
+      .then((res) => setAppointments(res.data.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const confirmedCount = doctor.appointments.filter(
-    (apt) => apt.status === "CONFIRMED"
-  ).length;
-  const pendingCount = doctor.appointments.filter(
-    (apt) => apt.status === "PENDING"
-  ).length;
+  const formatTime = (t) => {
+    if (!t) return "";
+    const [h, m] = t.split(":");
+    const hr = parseInt(h);
+    return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`;
+  };
 
-  const sidebarItems = [
-    {
-      path: "/doctor/dashboard",
-      label: "Dashboard",
-      icon: <MdCalendarToday />,
-    },
-    {
-      path: "/doctor/appointments",
-      label: "My Appointments",
-      icon: <MdSchedule />,
-    },
-    { path: "/doctor/prescriptions", label: "Prescriptions" },
-    { path: "/doctor/profile", label: "My Profile" },
-    { path: "/doctor/availability", label: "Availability" },
-  ];
+  const pending = appointments.filter((a) => a.status === "PENDING").length;
+  const confirmed = appointments.filter((a) => a.status === "CONFIRMED").length;
+  const completed = appointments.filter((a) => a.status === "COMPLETED").length;
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar items={sidebarItems} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <TopBar title="Doctor Dashboard" />
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "30px",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <div className="container">
-            {/* Stats */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "20px",
-                marginBottom: "40px",
-              }}
-            >
-              <StatCard
-                icon={<MdSchedule />}
-                label="Pending Confirmations"
-                value={pendingCount}
-                color="warning"
-              />
-              <StatCard
-                icon={<MdCheckCircle />}
-                label="Confirmed Appointments"
-                value={confirmedCount}
-                color="success"
-              />
+    <AppLayout title={`${greeting()}, Dr. ${user?.name?.split(" ")[0] || "Doctor"} 👋`} subtitle="Today's overview and patient management">
+      {loading ? (
+        <div className="loading-screen"><div className="spinner" /></div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="stats-grid">
+            {[
+              { icon: "📋", label: "Today's Appointments", value: appointments.length, color: "blue" },
+              { icon: "⏳", label: "Pending", value: pending, color: "amber" },
+              { icon: "✅", label: "Confirmed", value: confirmed, color: "green" },
+              { icon: "🎯", label: "Completed", value: completed, color: "teal" },
+            ].map((s, i) => (
+              <div key={i} className="stat-card">
+                <div className={`stat-icon ${s.color}`}>{s.icon}</div>
+                <div>
+                  <div className="stat-value">{s.value}</div>
+                  <div className="stat-label">{s.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="dashboard-grid">
+            {/* Today's Appointments */}
+            <div className="glass-card-elevated" style={{ padding: 0, overflow: "hidden" }}>
+              <div className="table-header">
+                <h3 className="table-title">🗓️ Today's Schedule</h3>
+                <Link to="/doctor/appointments" className="btn btn-sm btn-secondary">All Appointments</Link>
+              </div>
+              <div style={{ padding: "0 16px 16px" }}>
+                {appointments.length === 0 ? (
+                  <div className="empty-state" style={{ padding: "30px 0" }}>
+                    <div className="empty-icon">📅</div>
+                    <div className="empty-title" style={{ fontSize: 15 }}>No appointments today</div>
+                    <div className="empty-subtitle" style={{ fontSize: 12 }}>Enjoy your free day!</div>
+                  </div>
+                ) : (
+                  appointments.slice(0, 6).map((apt) => (
+                    <div key={apt.id} className="appointment-card">
+                      <div className="user-avatar" style={{ width: 40, height: 40 }}>
+                        {apt.patient?.avatar ? <img src={apt.patient.avatar} alt="" /> : apt.patient?.name?.[0]}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 14 }}>{apt.patient?.name}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                          🕐 {formatTime(apt.startTime)} — {formatTime(apt.endTime)}
+                        </div>
+                        {apt.reasonForVisit && (
+                          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }} className="truncate">{apt.reasonForVisit}</div>
+                        )}
+                      </div>
+                      <span className={`badge badge-${apt.status === "CONFIRMED" ? "green" : apt.status === "PENDING" ? "amber" : apt.status === "COMPLETED" ? "teal" : "muted"}`}>
+                        {apt.status}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
-            {/* Upcoming Appointments */}
-            <Card title="Today's Appointments">
-              {doctor.isLoading ? (
-                <SkeletonLoader count={3} height={100} />
-              ) : (
-                <div style={{ display: "grid", gap: "15px" }}>
-                  {doctor.appointments.slice(0, 5).map((apt) => (
-                    <div
-                      key={apt._id}
-                      style={{
-                        padding: "15px",
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                        backgroundColor: "#f9f9f9",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "start",
-                      }}
+            {/* Quick Actions */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div className="glass-card-elevated" style={{ padding: 20 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "var(--text-primary)" }}>⚡ Quick Actions</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    { to: "/doctor/appointments", icon: "📅", label: "View Appointments", desc: "Manage today's schedule", color: "var(--accent-primary)" },
+                    { to: "/doctor/templates", icon: "📋", label: "Rx Templates", desc: "Create & send prescriptions", color: "var(--accent-teal)" },
+                    { to: "/doctor/chat", icon: "💬", label: "Patient Messages", desc: "Real-time chat", color: "var(--accent-secondary)" },
+                    { to: "/doctor/availability", icon: "🕐", label: "Availability", desc: "Manage your schedule", color: "var(--accent-amber)" },
+                    { to: "/doctor/profile", icon: "👤", label: "My Profile", desc: "Update professional info", color: "var(--accent-rose)" },
+                  ].map((action, i) => (
+                    <Link
+                      key={i}
+                      to={action.to}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-primary)", background: "var(--bg-card)", textDecoration: "none", transition: "all 0.15s ease" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = action.color; e.currentTarget.style.background = "var(--bg-card-hover)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-primary)"; e.currentTarget.style.background = "var(--bg-card)"; }}
                     >
+                      <div style={{ width: 38, height: 38, borderRadius: "var(--radius-md)", background: `${action.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{action.icon}</div>
                       <div>
-                        <h4 style={{ margin: "0 0 8px 0", color: "#333" }}>
-                          {apt.patientId?.name || "Patient"}
-                        </h4>
-                        <p
-                          style={{
-                            margin: "0 0 5px 0",
-                            color: "#666",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {formatDateTime(apt.date, apt.startTime)}
-                        </p>
-                        <p
-                          style={{
-                            margin: "0",
-                            color: "#666",
-                            fontSize: "14px",
-                          }}
-                        >
-                          Reason: {apt.reasonForVisit || "General Consultation"}
-                        </p>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>{action.label}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{action.desc}</div>
                       </div>
-                      <div style={{ display: "flex", gap: "10px" }}>
-                        {apt.status === "PENDING" && (
-                          <button
-                            onClick={() => doctor.confirmAppointment(apt._id)}
-                            className="btn btn-primary"
-                            style={{ padding: "8px 12px", fontSize: "12px" }}
-                          >
-                            Confirm
-                          </button>
-                        )}
-                        <span
-                          className={`badge badge-${
-                            apt.status === "CONFIRMED" ? "success" : "warning"
-                          }`}
-                        >
-                          {apt.status}
-                        </span>
-                      </div>
-                    </div>
+                      <div style={{ marginLeft: "auto", color: "var(--text-muted)" }}>›</div>
+                    </Link>
                   ))}
-                  {doctor.appointments.length === 0 && (
-                    <p style={{ textAlign: "center", color: "#999" }}>
-                      No appointments scheduled
-                    </p>
-                  )}
                 </div>
-              )}
-            </Card>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AppLayout>
   );
 };
 

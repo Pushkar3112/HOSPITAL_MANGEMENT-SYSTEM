@@ -1,200 +1,143 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
-import { Card, StatCard } from "../components/Card";
-import { SkeletonLoader } from "../components/Loading";
-import usePatient from "../hooks/usePatient";
-import { MdCalendarToday, MdSchedule, MdCheckCircle } from "react-icons/md";
-import { formatDateTime } from "../utils/dateUtils";
+import { useSelector } from "react-redux";
+import { patientAPI } from "../services/api";
+import AppLayout from "../components/AppLayout";
+import { Link } from "react-router-dom";
 
 const PatientDashboard = () => {
-  const patient = usePatient();
-  const [activeTab, setActiveTab] = useState("upcoming");
+  const { user } = useSelector((s) => s.auth);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    patient.loadAppointments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    patientAPI.getDashboardStats()
+      .then((res) => setStats(res.data.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const upcoming = patient.appointments.filter((apt) =>
-    ["PENDING", "CONFIRMED"].includes(apt.status)
-  );
-  const completed = patient.appointments.filter(
-    (apt) => apt.status === "COMPLETED"
-  );
+  const formatTime = (t) => {
+    const [h, m] = t.split(":");
+    const hr = parseInt(h);
+    return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`;
+  };
 
-  const sidebarItems = [
-    {
-      path: "/patient/dashboard",
-      label: "Dashboard",
-      icon: <MdCalendarToday />,
-    },
-    {
-      path: "/patient/appointments",
-      label: "Appointments",
-      icon: <MdSchedule />,
-    },
-    { path: "/patient/profile", label: "My Profile" },
-    { path: "/patient/symptom-checker", label: "Symptom Checker" },
-    { path: "/patient/medical-history", label: "Medical History" },
-    { path: "/patient/prescriptions", label: "Prescriptions" },
-    { path: "/patient/invoices", label: "Invoices" },
-  ];
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar items={sidebarItems} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <TopBar title="Patient Dashboard" />
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "30px",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <div className="container">
-            {/* Stats */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "20px",
-                marginBottom: "40px",
-              }}
-            >
-              <StatCard
-                icon={<MdSchedule />}
-                label="Upcoming Appointments"
-                value={upcoming.length}
-                color="primary"
-              />
-              <StatCard
-                icon={<MdCheckCircle />}
-                label="Completed Appointments"
-                value={completed.length}
-                color="success"
-              />
-            </div>
-
-            {/* Appointments List */}
-            <Card title="Your Appointments">
-              <div
-                style={{ marginBottom: "20px", display: "flex", gap: "10px" }}
-              >
-                <button
-                  onClick={() => setActiveTab("upcoming")}
-                  style={{
-                    padding: "8px 15px",
-                    border:
-                      activeTab === "upcoming"
-                        ? "2px solid #0066cc"
-                        : "1px solid #ddd",
-                    borderRadius: "6px",
-                    backgroundColor:
-                      activeTab === "upcoming" ? "#f0f7ff" : "transparent",
-                    color: activeTab === "upcoming" ? "#0066cc" : "#666",
-                    fontWeight: activeTab === "upcoming" ? "600" : "500",
-                    cursor: "pointer",
-                  }}
-                >
-                  Upcoming
-                </button>
-                <button
-                  onClick={() => setActiveTab("completed")}
-                  style={{
-                    padding: "8px 15px",
-                    border:
-                      activeTab === "completed"
-                        ? "2px solid #0066cc"
-                        : "1px solid #ddd",
-                    borderRadius: "6px",
-                    backgroundColor:
-                      activeTab === "completed" ? "#f0f7ff" : "transparent",
-                    color: activeTab === "completed" ? "#0066cc" : "#666",
-                    fontWeight: activeTab === "completed" ? "600" : "500",
-                    cursor: "pointer",
-                  }}
-                >
-                  Completed
-                </button>
+    <AppLayout title={`${greeting()}, ${user?.name?.split(" ")[0] || "Patient"} 👋`} subtitle="Here's an overview of your health activity">
+      {loading ? (
+        <div className="loading-screen"><div className="spinner" /></div>
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="stats-grid">
+            {[
+              { icon: "📅", label: "Total Appointments", value: stats?.totalAppointments ?? 0, color: "blue" },
+              { icon: "💊", label: "Prescriptions", value: stats?.totalPrescriptions ?? 0, color: "teal" },
+              { icon: "📋", label: "Medical Records", value: stats?.totalMedicalRecords ?? 0, color: "purple" },
+              { icon: "⏳", label: "Upcoming", value: stats?.upcomingAppointments?.length ?? 0, color: "amber" },
+            ].map((s, i) => (
+              <div key={i} className="stat-card">
+                <div className={`stat-icon ${s.color}`}>{s.icon}</div>
+                <div>
+                  <div className="stat-value">{s.value}</div>
+                  <div className="stat-label">{s.label}</div>
+                </div>
               </div>
+            ))}
+          </div>
 
-              {patient.isLoading ? (
-                <SkeletonLoader count={3} height={100} />
-              ) : (
-                <div style={{ display: "grid", gap: "15px" }}>
-                  {(activeTab === "upcoming" ? upcoming : completed).map(
-                    (apt) => (
-                      <div
-                        key={apt.id || apt._id}
-                        style={{
-                          padding: "15px",
-                          border: "1px solid #ddd",
-                          borderRadius: "8px",
-                          backgroundColor: "#f9f9f9",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "start",
-                          }}
-                        >
-                          <div>
-                            <h4 style={{ margin: "0 0 8px 0", color: "#333" }}>
-                              {apt.doctor?.name || apt.doctorId?.name || "Doctor"}
-                            </h4>
-                            <p
-                              style={{
-                                margin: "0 0 5px 0",
-                                color: "#666",
-                                fontSize: "14px",
-                              }}
-                            >
-                              {formatDateTime(apt.date, apt.startTime)}
-                            </p>
-                            <p
-                              style={{
-                                margin: "0 0 5px 0",
-                                color: "#666",
-                                fontSize: "14px",
-                              }}
-                            >
-                              {apt.visitType === "ONLINE"
-                                ? "🔗 Online"
-                                : "📍 Offline"}
-                            </p>
+          <div className="dashboard-grid">
+            {/* Upcoming Appointments */}
+            <div className="glass-card-elevated" style={{ padding: 0, overflow: "hidden" }}>
+              <div className="table-header">
+                <h3 className="table-title">📅 Upcoming Appointments</h3>
+                <Link to="/patient/appointments" className="btn btn-sm btn-secondary">View All</Link>
+              </div>
+              <div style={{ padding: "0 16px 16px" }}>
+                {!stats?.upcomingAppointments?.length ? (
+                  <div className="empty-state" style={{ padding: "30px 0" }}>
+                    <div className="empty-icon">📅</div>
+                    <div className="empty-title" style={{ fontSize: 15 }}>No upcoming appointments</div>
+                    <Link to="/patient/appointments" className="btn btn-primary btn-sm" style={{ marginTop: 12 }}>Book Appointment</Link>
+                  </div>
+                ) : (
+                  stats.upcomingAppointments.map((apt) => (
+                    <div key={apt.id} className="appointment-card">
+                      <div className="appointment-date-box">
+                        <div className="apt-day">{new Date(apt.date).getDate()}</div>
+                        <div className="apt-month">{new Date(apt.date).toLocaleString("default", { month: "short" })}</div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 14 }}>
+                          Dr. {apt.doctor?.name}
+                        </div>
+                        {apt.doctor?.doctorProfile && (
+                          <div style={{ fontSize: 12, color: "var(--accent-primary)", fontWeight: 600 }}>
+                            {apt.doctor.doctorProfile.specialization}
                           </div>
-                          <span
-                            className={`badge badge-${apt.status === "CONFIRMED"
-                                ? "success"
-                                : apt.status === "PENDING"
-                                  ? "warning"
-                                  : "primary"
-                              }`}
-                          >
-                            {apt.status}
-                          </span>
+                        )}
+                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                          🕐 {formatTime(apt.startTime)}
                         </div>
                       </div>
-                    )
-                  )}
-                  {(activeTab === "upcoming" ? upcoming : completed).length ===
-                    0 && (
-                      <p style={{ textAlign: "center", color: "#999" }}>
-                        No {activeTab} appointments found
-                      </p>
-                    )}
+                      <div>
+                        <span className={`badge badge-${apt.status === "CONFIRMED" ? "green" : apt.status === "PENDING" ? "amber" : "muted"}`}>
+                          {apt.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div className="glass-card-elevated" style={{ padding: 20 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "var(--text-primary)" }}>⚡ Quick Actions</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    { to: "/patient/appointments", icon: "📅", label: "Book Appointment", desc: "Schedule with a doctor", color: "var(--accent-primary)" },
+                    { to: "/patient/rag-chat", icon: "🤖", label: "AI Health Assistant", desc: "Ask health questions", color: "var(--accent-teal)" },
+                    { to: "/patient/chat", icon: "💬", label: "Message Doctor", desc: "Real-time chat", color: "var(--accent-secondary)" },
+                    { to: "/patient/medical-history", icon: "📋", label: "Medical Records", desc: "View your health history", color: "var(--accent-amber)" },
+                    { to: "/patient/prescriptions", icon: "💊", label: "Prescriptions", desc: "View all prescriptions", color: "var(--accent-rose)" },
+                  ].map((action, i) => (
+                    <Link
+                      key={i}
+                      to={action.to}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                        borderRadius: "var(--radius-md)", border: "1px solid var(--border-primary)",
+                        background: "var(--bg-card)", textDecoration: "none", transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = action.color; e.currentTarget.style.background = "var(--bg-card-hover)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-primary)"; e.currentTarget.style.background = "var(--bg-card)"; }}
+                    >
+                      <div style={{ width: 38, height: 38, borderRadius: "var(--radius-md)", background: `${action.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                        {action.icon}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>{action.label}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{action.desc}</div>
+                      </div>
+                      <div style={{ marginLeft: "auto", color: "var(--text-muted)" }}>›</div>
+                    </Link>
+                  ))}
                 </div>
-              )}
-            </Card>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AppLayout>
   );
 };
 

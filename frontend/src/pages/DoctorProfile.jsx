@@ -1,235 +1,182 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
-import { Card } from "../components/Card";
-import useDoctor from "../hooks/useDoctor";
-import { MdCalendarToday, MdSchedule } from "react-icons/md";
+import { doctorAPI } from "../services/api";
+import AppLayout from "../components/AppLayout";
+import { toast } from "react-toastify";
+
+const SPECIALIZATIONS = [
+  "Cardiologist", "Neurologist", "Orthopedic Surgeon", "Dermatologist",
+  "Pediatrician", "Gynecologist", "Psychiatrist", "General Physician",
+  "Ophthalmologist", "ENT Specialist", "Gastroenterologist", "Radiologist",
+  "Oncologist", "Nephrologist", "Pulmonologist", "Endocrinologist",
+];
 
 const DoctorProfile = () => {
-  const doctor = useDoctor();
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    doctor.loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (doctor.profile) {
-      setFormData(doctor.profile);
-    }
-  }, [doctor.profile]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const loadProfile = () => {
+    doctorAPI.getProfile()
+      .then((res) => {
+        setProfile(res.data.data);
+        const d = res.data.data;
+        setForm({
+          name: d.user?.name || "",
+          phone: d.user?.phone || "",
+          specialization: d.profile?.specialization || "",
+          qualifications: d.profile?.qualifications?.join(", ") || "",
+          yearsOfExperience: d.profile?.yearsOfExperience || 0,
+          hospitalName: d.profile?.hospitalName || "",
+          consultationFee: d.profile?.consultationFee || 0,
+        });
+      })
+      .catch(() => toast.error("Failed to load profile"))
+      .finally(() => setLoading(false));
   };
 
-  const handleSubmit = async (e) => {
+  useEffect(() => { loadProfile(); }, []);
+
+  const handleSave = async (e) => {
     e.preventDefault();
+    setSaving(true);
     try {
-      // Call update API
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Update failed:", error);
+      await doctorAPI.updateProfile({
+        ...form,
+        qualifications: form.qualifications ? form.qualifications.split(",").map((q) => q.trim()).filter(Boolean) : [],
+        yearsOfExperience: parseInt(form.yearsOfExperience),
+        consultationFee: parseFloat(form.consultationFee),
+      });
+      toast.success("Profile updated successfully");
+      setEditing(false);
+      loadProfile();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to save");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const sidebarItems = [
-    {
-      path: "/doctor/dashboard",
-      label: "Dashboard",
-      icon: <MdCalendarToday />,
-    },
-    {
-      path: "/doctor/appointments",
-      label: "Appointments",
-      icon: <MdSchedule />,
-    },
-    { path: "/doctor/profile", label: "My Profile" },
-    { path: "/doctor/availability", label: "Availability" },
-    { path: "/doctor/prescriptions", label: "Prescriptions" },
-  ];
+  if (loading) return <AppLayout title="My Profile"><div className="loading-screen"><div className="spinner" /></div></AppLayout>;
 
-  if (doctor.isLoading) {
-    return (
-      <div style={{ display: "flex", height: "100vh" }}>
-        <Sidebar items={sidebarItems} />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <TopBar title="My Profile" />
-          <div style={{ flex: 1, padding: "30px" }}>Loading...</div>
-        </div>
-      </div>
-    );
-  }
+  const { user: u, profile: p } = profile || {};
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar items={sidebarItems} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <TopBar title="My Profile" />
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "30px",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <div className="container">
-            <Card title="Doctor Information">
-              {!isEditing ? (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "20px",
-                  }}
-                >
-                  <div>
-                    <label style={{ color: "#666", fontSize: "14px" }}>
-                      Name
-                    </label>
-                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.userId?.name || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ color: "#666", fontSize: "14px" }}>
-                      Email
-                    </label>
-                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.userId?.email || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ color: "#666", fontSize: "14px" }}>
-                      Specialization
-                    </label>
-                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.specialization || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ color: "#666", fontSize: "14px" }}>
-                      Consultation Fee
-                    </label>
-                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      ₹{formData.consultationFee || "0"}
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ color: "#666", fontSize: "14px" }}>
-                      Years of Experience
-                    </label>
-                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.yearsOfExperience || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label style={{ color: "#666", fontSize: "14px" }}>
-                      Hospital
-                    </label>
-                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.hospitalName || "N/A"}
-                    </p>
-                  </div>
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <label style={{ color: "#666", fontSize: "14px" }}>
-                      Qualifications
-                    </label>
-                    <p style={{ fontSize: "16px", fontWeight: "600" }}>
-                      {formData.qualifications?.join(", ") || "None"}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, 1fr)",
-                      gap: "20px",
-                      marginBottom: "20px",
-                    }}
-                  >
-                    <input
-                      type="text"
-                      name="specialization"
-                      placeholder="Specialization"
-                      value={formData.specialization || ""}
-                      onChange={handleChange}
-                      style={{
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                      }}
-                    />
-                    <input
-                      type="number"
-                      name="consultationFee"
-                      placeholder="Consultation Fee"
-                      value={formData.consultationFee || ""}
-                      onChange={handleChange}
-                      style={{
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <button
-                      type="submit"
-                      style={{
-                        padding: "10px 20px",
-                        backgroundColor: "#0066cc",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      style={{
-                        padding: "10px 20px",
-                        backgroundColor: "#ddd",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
-              {!isEditing && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  style={{
-                    marginTop: "20px",
-                    padding: "10px 20px",
-                    backgroundColor: "#0066cc",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Edit Profile
-                </button>
-              )}
-            </Card>
+    <AppLayout title="My Profile" subtitle="Manage your professional information">
+      {/* Profile Header */}
+      <div className="profile-header" style={{ marginBottom: 20 }}>
+        <div className="profile-avatar-large">
+          {u?.avatar ? <img src={u.avatar} alt={u?.name} /> : u?.name?.[0] || "D"}
+        </div>
+        <div className="profile-info">
+          <div className="profile-name">Dr. {u?.name}</div>
+          <div className="profile-specialty">{p?.specialization}</div>
+          <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+            {p?.isVerified ? (
+              <span className="badge badge-green">✓ Verified Doctor</span>
+            ) : (
+              <span className="badge badge-amber">⏳ Pending Verification</span>
+            )}
+            <span className="badge badge-blue">🏥 {p?.hospitalName}</span>
+            {p?.rating > 0 && <span className="badge badge-amber">⭐ {p.rating.toFixed(1)}</span>}
           </div>
         </div>
+        <div style={{ marginLeft: "auto", position: "relative", zIndex: 1 }}>
+          <button className="btn btn-primary btn-sm" onClick={() => setEditing(!editing)}>
+            {editing ? "Cancel" : "✏️ Edit Profile"}
+          </button>
+        </div>
       </div>
-    </div>
+
+      {editing ? (
+        <div className="glass-card-elevated" style={{ padding: 28 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20, color: "var(--text-primary)" }}>Edit Profile</h3>
+          <form onSubmit={handleSave}>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <input className="form-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Phone</label>
+                <input className="form-input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Specialization</label>
+                <select className="form-select" value={form.specialization} onChange={(e) => setForm({ ...form, specialization: e.target.value })}>
+                  <option value="">Select...</option>
+                  {SPECIALIZATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Years of Experience</label>
+                <input type="number" className="form-input" min="0" max="60" value={form.yearsOfExperience} onChange={(e) => setForm({ ...form, yearsOfExperience: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Hospital Name</label>
+                <input className="form-input" value={form.hospitalName} onChange={(e) => setForm({ ...form, hospitalName: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Consultation Fee (₹)</label>
+                <input type="number" className="form-input" min="0" value={form.consultationFee} onChange={(e) => setForm({ ...form, consultationFee: e.target.value })} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Qualifications (comma-separated)</label>
+              <input className="form-input" placeholder="MBBS, MD, DM Cardiology" value={form.qualifications} onChange={(e) => setForm({ ...form, qualifications: e.target.value })} />
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? <><span className="spinner spinner-sm" /> Saving...</> : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : (
+        <div className="dashboard-grid">
+          <div className="glass-card-elevated" style={{ padding: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "var(--text-primary)" }}>👨‍⚕️ Professional Info</h3>
+            {[
+              { label: "Specialization", value: p?.specialization },
+              { label: "Hospital", value: p?.hospitalName },
+              { label: "Experience", value: `${p?.yearsOfExperience} years` },
+              { label: "Consultation Fee", value: `₹${p?.consultationFee}` },
+              { label: "Qualifications", value: p?.qualifications?.join(", ") || "—" },
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border-primary)" }}>
+                <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{item.label}</span>
+                <span style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{item.value || "—"}</span>
+              </div>
+            ))}
+          </div>
+          <div className="glass-card-elevated" style={{ padding: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "var(--text-primary)" }}>📞 Contact Info</h3>
+            {[
+              { label: "Full Name", value: u?.name },
+              { label: "Email", value: u?.email },
+              { label: "Phone", value: u?.phone || "—" },
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border-primary)" }}>
+                <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{item.label}</span>
+                <span style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{item.value}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600, marginBottom: 8 }}>Schedule</div>
+              <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>
+                {p?.dailyStartTime} — {p?.dailyEndTime} · {p?.slotDurationMinutes} min slots
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppLayout>
   );
 };
 

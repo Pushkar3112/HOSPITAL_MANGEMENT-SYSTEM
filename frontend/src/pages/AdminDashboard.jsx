@@ -1,147 +1,82 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
-import { Card, StatCard } from "../components/Card";
-import { SkeletonLoader } from "../components/Loading";
-import { adminService } from "../services";
-import {
-  MdDashboard,
-  MdPeople,
-  MdSchedule,
-  MdAttachMoney,
-} from "react-icons/md";
+import { adminAPI } from "../services/api";
+import AppLayout from "../components/AppLayout";
+import { toast } from "react-toastify";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStats();
+    adminAPI.getDashboard()
+      .then((res) => setStats(res.data.data))
+      .catch(() => toast.error("Failed to load dashboard stats"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const loadStats = async () => {
-    try {
-      const response = await adminService.getStats();
-      setStats(response.data.data);
-    } catch (error) {
-      console.error("Failed to load stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sidebarItems = [
-    { path: "/admin/dashboard", label: "Dashboard", icon: <MdDashboard /> },
-    { path: "/admin/users", label: "Users Management", icon: <MdPeople /> },
-    {
-      path: "/admin/appointments",
-      label: "Appointments",
-      icon: <MdSchedule />,
-    },
-    { path: "/admin/invoices", label: "Invoices", icon: <MdAttachMoney /> },
-    { path: "/admin/doctors", label: "Doctor Approvals" },
-  ];
+  const cards = stats ? [
+    { icon: "👥", label: "Total Users", value: stats.totalUsers ?? 0, color: "blue" },
+    { icon: "🩺", label: "Doctors", value: stats.totalDoctors ?? 0, color: "purple" },
+    { icon: "🧑", label: "Patients", value: stats.totalPatients ?? 0, color: "teal" },
+    { icon: "📅", label: "Total Appointments", value: stats.totalAppointments ?? 0, color: "amber" },
+    { icon: "✅", label: "Completed", value: stats.completedAppointments ?? 0, color: "green" },
+    { icon: "⏳", label: "Pending", value: stats.pendingAppointments ?? 0, color: "rose" },
+  ] : [];
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar items={sidebarItems} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <TopBar title="Admin Dashboard" />
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "30px",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <div className="container">
-            {/* Stats */}
-            {loading ? (
-              <SkeletonLoader count={4} height={120} />
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                  gap: "20px",
-                  marginBottom: "40px",
-                }}
-              >
-                <StatCard
-                  icon={<MdPeople />}
-                  label="Total Patients"
-                  value={stats?.totalPatients || 0}
-                  color="primary"
-                />
-                <StatCard
-                  icon={<MdPeople />}
-                  label="Total Doctors"
-                  value={stats?.totalDoctors || 0}
-                  color="secondary"
-                />
-                <StatCard
-                  icon={<MdSchedule />}
-                  label="Today's Appointments"
-                  value={stats?.todaysAppointments || 0}
-                  color="warning"
-                />
-                <StatCard
-                  icon={<MdAttachMoney />}
-                  label="Total Revenue"
-                  value={`₹${stats?.totalRevenue || 0}`}
-                  color="success"
-                />
+    <AppLayout title="Admin Dashboard" subtitle="System overview and management">
+      {loading ? (
+        <div className="loading-screen"><div className="spinner" /></div>
+      ) : (
+        <>
+          <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+            {cards.map((c, i) => (
+              <div key={i} className="stat-card">
+                <div className={`stat-icon ${c.color}`}>{c.icon}</div>
+                <div>
+                  <div className="stat-value">{c.value}</div>
+                  <div className="stat-label">{c.label}</div>
+                </div>
               </div>
-            )}
-
-            {/* Quick Actions */}
-            <Card title="System Overview">
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: "15px",
-                }}
-              >
-                {[
-                  { label: "Manage Users", path: "/admin/users" },
-                  { label: "View Appointments", path: "/admin/appointments" },
-                  { label: "Approve Doctors", path: "/admin/doctors" },
-                  { label: "View Invoices", path: "/admin/invoices" },
-                ].map((action) => (
-                  <button
-                    key={action.path}
-                    onClick={() => (window.location.href = action.path)}
-                    style={{
-                      padding: "20px",
-                      border: "1px solid #ddd",
-                      borderRadius: "8px",
-                      backgroundColor: "#f9f9f9",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                      transition: "all 0.3s",
-                      color: "#0066cc",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#f0f7ff";
-                      e.target.style.boxShadow =
-                        "0 4px 12px rgba(0, 102, 204, 0.2)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "#f9f9f9";
-                      e.target.style.boxShadow = "none";
-                    }}
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            </Card>
+            ))}
           </div>
-        </div>
-      </div>
-    </div>
+
+          {stats?.recentAppointments?.length > 0 && (
+            <div className="table-container" style={{ marginTop: 24 }}>
+              <div className="table-header">
+                <h3 className="table-title">📅 Recent Appointments</h3>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Patient</th>
+                      <th>Doctor</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.recentAppointments.slice(0, 8).map((apt) => (
+                      <tr key={apt.id}>
+                        <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{apt.patient?.name}</td>
+                        <td style={{ color: "var(--text-secondary)" }}>Dr. {apt.doctor?.name}</td>
+                        <td style={{ color: "var(--text-muted)", fontSize: 13 }}>{new Date(apt.date).toLocaleDateString("en-IN")}</td>
+                        <td>
+                          <span className={`badge badge-${apt.status === "COMPLETED" ? "green" : apt.status === "CONFIRMED" ? "blue" : apt.status === "PENDING" ? "amber" : "muted"}`}>
+                            {apt.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </AppLayout>
   );
 };
 
